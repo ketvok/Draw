@@ -216,6 +216,7 @@
     <Image Include="res\main.bmp" />
     <Image Include="res\shapes.bmp" />
     <Image Include="res\shapes24.bmp" />
+    <Image Include="res\sizes1234.bmp" />
     <Image Include="res\Toolbar.bmp" />
     <Image Include="res\Toolbar256.bmp" />
     <Image Include="res\writelarge.bmp" />

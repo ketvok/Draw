@@ -24,18 +24,22 @@
 #define IDR_RIBBON                      307
 #define IDB_SHAPES                      310
 #define IDB_SIZES1234                   311
+#define IDB_OUTLINES                    312
+#define IDB_FILLS                       313
 #define ID_WRITE_PASTEASHYPERLINK       32770
 #define ID_BUTTON_ERASER                32774
 #define ID_BUTTON_PEN                   32775
 #define ID_GALLERY_SIZE                 32788
 #define ID_GALLERY_SHAPES               32789
+#define ID_OUTLINE                      32790
+#define ID_FILL                         32792
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        312
-#define _APS_NEXT_COMMAND_VALUE         32790
+#define _APS_NEXT_RESOURCE_VALUE        314
+#define _APS_NEXT_COMMAND_VALUE         32793
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

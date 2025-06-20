@@ -17,10 +17,12 @@
 #include "Draw.h"
 
 #include "MainFrm.h"
+#include "ForeBackColBtn.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+#include <vector>
 
 // CMainFrame
 
@@ -54,6 +56,50 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	m_wndRibbonBar.Create(this);
 	m_wndRibbonBar.LoadFromResource(IDR_RIBBON);
+
+
+	// ************************************************************
+	// *         Foreground and Background color buttons          *
+	// ************************************************************
+
+	// Find the original foreground and background color buttons
+	CMFCRibbonBaseElement* pOldForeButton = m_wndRibbonBar.FindByID(ID_FORECOLOR);
+	CMFCRibbonBaseElement* pOldBackButton = m_wndRibbonBar.FindByID(ID_BACKCOLOR);
+	ASSERT(pOldForeButton != nullptr && pOldBackButton != nullptr);
+	
+	// Find the panel that contains the old foreground or background color buttons
+	CMFCRibbonPanel* pPanel = pOldForeButton->GetParentPanel();
+	ASSERT (pPanel != nullptr);
+	
+	// Find the index of the old buttons in the panel
+	int indexForeButton = pPanel->GetIndex(pOldForeButton);
+	int indexBackButton = pPanel->GetIndex(pOldBackButton);
+	ASSERT(indexForeButton != -1 && indexBackButton != -1);
+
+	// Remove the old button
+	pPanel->Remove(indexForeButton);
+
+	// Create and insert custom buttons
+	ForeBackColBtn* pMyForeButton = new ForeBackColBtn(ID_FORECOLOR, _T(""));
+	pPanel->Insert(pMyForeButton, indexForeButton);
+	ForeBackColBtn* pMyBackButton = new ForeBackColBtn(ID_BACKCOLOR, _T(""));
+	pPanel->Insert(pMyBackButton, indexBackButton);
+
+	// Find the size selection gallery
+	CMFCRibbonBaseElement* pGallery = m_wndRibbonBar.FindByID(ID_GALLERY_SIZE);
+	ASSERT(pGallery != nullptr);
+
+	// Get the size of the gallery
+	CDC* pDC = GetDC();
+	CSize gallerySize = pGallery->GetRegularSize(pDC);
+	ReleaseDC(pDC);
+
+	// Set the custom button size to match the gallery size
+	pMyForeButton->SetCustomRegularSize(gallerySize);
+	pMyBackButton->SetCustomRegularSize(gallerySize);
+
+	// ************************************************************
+
 
 	if (!m_wndStatusBar.Create(this))
 	{

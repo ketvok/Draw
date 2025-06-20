@@ -4,6 +4,8 @@
 //
 #define IDD_ABOUTBOX                    100
 #define IDP_OLE_INIT_FAILED             100
+#define IDS_FORECOLOR_LABEL             101
+#define IDS_BACKCOLOR_LABEL             102
 #define IDB_WRITESMALL                  110
 #define IDB_WRITELARGE                  111
 #define IDB_MAIN                        112
@@ -33,15 +35,15 @@
 #define ID_GALLERY_SHAPES               32789
 #define ID_OUTLINE                      32790
 #define ID_FILL                         32792
-#define ID_COLOR1                       32793
-#define ID_BUTTON2                      32794
+#define ID_FORECOLOR                    32795
+#define ID_BACKCOLOR                    32796
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        314
-#define _APS_NEXT_COMMAND_VALUE         32795
+#define _APS_NEXT_COMMAND_VALUE         32797
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

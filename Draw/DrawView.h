@@ -54,6 +54,11 @@ protected:
 	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnForecolor();
+	afx_msg void OnGallerySize();
+	afx_msg void OnBackcolor();
+	afx_msg void OnGalleryShapes();
 };
 
 #ifndef _DEBUG  // debug version in DrawView.cpp

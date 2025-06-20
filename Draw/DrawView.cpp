@@ -39,6 +39,10 @@ BEGIN_MESSAGE_MAP(CDrawView, CScrollView)
 	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CDrawView::OnFilePrintPreview)
 	ON_WM_CONTEXTMENU()
 	ON_WM_RBUTTONUP()
+	ON_COMMAND(ID_FORECOLOR, &CDrawView::OnForecolor)
+	ON_COMMAND(ID_GALLERY_SIZE, &CDrawView::OnGallerySize)
+	ON_COMMAND(ID_BACKCOLOR, &CDrawView::OnBackcolor)
+	ON_COMMAND(ID_GALLERY_SHAPES, &CDrawView::OnGalleryShapes)
 END_MESSAGE_MAP()
 
 // CDrawView construction/destruction
@@ -46,7 +50,6 @@ END_MESSAGE_MAP()
 CDrawView::CDrawView() noexcept
 {
 	// TODO: add construction code here
-
 }
 
 CDrawView::~CDrawView()
@@ -63,14 +66,12 @@ BOOL CDrawView::PreCreateWindow(CREATESTRUCT& cs)
 
 // CDrawView drawing
 
-void CDrawView::OnDraw(CDC* /*pDC*/)
+void CDrawView::OnDraw(CDC* pDC)
 {
-	CDrawDoc* pDoc = GetDocument();
-	ASSERT_VALID(pDoc);
-	if (!pDoc)
-		return;
-
-	// TODO: add draw code for native data here
+    CDrawDoc* pDoc = GetDocument();
+    ASSERT_VALID(pDoc);
+    if (!pDoc)
+        return;
 }
 
 void CDrawView::OnInitialUpdate()
@@ -146,3 +147,26 @@ CDrawDoc* CDrawView::GetDocument() const // non-debug version is inline
 
 
 // CDrawView message handlers
+
+void CDrawView::OnGallerySize()
+{
+	// TODO: Add your command handler code here
+}
+
+void CDrawView::OnForecolor()
+{
+	// TODO: Add your command handler code here
+	MessageBox(_T("Color 1 selected!"), _T("Color 1 Selection"), MB_OK | MB_ICONINFORMATION);
+}
+
+void CDrawView::OnBackcolor()
+{
+	// TODO: Add your command handler code here
+	MessageBox(_T("Color 2 selected!"), _T("Color 2 Selection"), MB_OK | MB_ICONINFORMATION);
+}
+
+void CDrawView::OnGalleryShapes()
+{
+	// TODO: Add your command handler code here
+	MessageBox(_T("Shape selected!"), _T("Shape Selection"), MB_OK | MB_ICONINFORMATION);
+}

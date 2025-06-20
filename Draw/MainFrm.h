@@ -34,13 +34,13 @@ public:
 // Implementation
 public:
 	virtual ~CMainFrame();
+	CMFCRibbonBar m_wndRibbonBar;
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
 #endif
 
 protected:  // control bar embedded members
-	CMFCRibbonBar     m_wndRibbonBar;
 	CMFCRibbonApplicationButton m_MainButton;
 	CMFCToolBarImages m_PanelImages;
 	CMFCRibbonStatusBar  m_wndStatusBar;

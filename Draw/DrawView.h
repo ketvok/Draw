@@ -60,6 +60,10 @@ public:
 	afx_msg void OnBackcolor();
 	afx_msg void OnGalleryShapes();
 	afx_msg void OnGalleryColors();
+	afx_msg void OnButtonPen();
+	afx_msg void OnButtonEraser();
+	afx_msg void OnOutline();
+	afx_msg void OnFill();
 };
 
 #ifndef _DEBUG  // debug version in DrawView.cpp

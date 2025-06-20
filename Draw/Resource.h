@@ -37,7 +37,6 @@
 #define ID_FILL                         32792
 #define ID_FORECOLOR                    32795
 #define ID_BACKCOLOR                    32796
-#define ID_BUTTON2                      32797
 #define ID_GALLERY_COLORS               32797
 
 // Next default values for new objects

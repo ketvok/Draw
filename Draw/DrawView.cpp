@@ -44,6 +44,10 @@ BEGIN_MESSAGE_MAP(CDrawView, CScrollView)
 	ON_COMMAND(ID_BACKCOLOR, &CDrawView::OnBackcolor)
 	ON_COMMAND(ID_GALLERY_SHAPES, &CDrawView::OnGalleryShapes)
 	ON_COMMAND(ID_GALLERY_COLORS, &CDrawView::OnGalleryColors)
+	ON_COMMAND(ID_BUTTON_PEN, &CDrawView::OnButtonPen)
+	ON_COMMAND(ID_BUTTON_ERASER, &CDrawView::OnButtonEraser)
+	ON_COMMAND(ID_OUTLINE, &CDrawView::OnOutline)
+	ON_COMMAND(ID_FILL, &CDrawView::OnFill)
 END_MESSAGE_MAP()
 
 // CDrawView construction/destruction
@@ -152,6 +156,7 @@ CDrawDoc* CDrawView::GetDocument() const // non-debug version is inline
 void CDrawView::OnGallerySize()
 {
 	// TODO: Add your command handler code here
+	MessageBox(_T("Size selected!"), _T("Size Selection"), MB_OK | MB_ICONINFORMATION);
 }
 
 void CDrawView::OnForecolor()
@@ -176,4 +181,28 @@ void CDrawView::OnGalleryColors()
 {
 	// TODO: Add your command handler code here
 	MessageBox(_T("Color selected!"), _T("Color Selection"), MB_OK | MB_ICONINFORMATION);
+}
+
+void CDrawView::OnButtonPen()
+{
+	// TODO: Add your command handler code here
+	MessageBox(_T("Pen button clicked!"), _T("Pen Selection"), MB_OK | MB_ICONINFORMATION);
+}
+
+void CDrawView::OnButtonEraser()
+{
+	// TODO: Add your command handler code here
+	MessageBox(_T("Eraser button clicked!"), _T("Eraser Selection"), MB_OK | MB_ICONINFORMATION);
+}
+
+void CDrawView::OnOutline()
+{
+	// TODO: Add your command handler code here
+	MessageBox(_T("Outline button clicked!"), _T("Outline Selection"), MB_OK | MB_ICONINFORMATION);
+}
+
+void CDrawView::OnFill()
+{
+	// TODO: Add your command handler code here
+	MessageBox(_T("Fill button clicked!"), _T("Fill Selection"), MB_OK | MB_ICONINFORMATION);
 }

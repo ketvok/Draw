@@ -59,6 +59,7 @@ public:
 	afx_msg void OnGallerySize();
 	afx_msg void OnBackcolor();
 	afx_msg void OnGalleryShapes();
+	afx_msg void OnGalleryColors();
 };
 
 #ifndef _DEBUG  // debug version in DrawView.cpp

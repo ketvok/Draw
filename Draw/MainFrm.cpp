@@ -62,28 +62,20 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	// *         Foreground and Background color buttons          *
 	// ************************************************************
 
-	// Find the original foreground and background color buttons
-	CMFCRibbonBaseElement* pOldForeButton = m_wndRibbonBar.FindByID(ID_FORECOLOR);
-	CMFCRibbonBaseElement* pOldBackButton = m_wndRibbonBar.FindByID(ID_BACKCOLOR);
-	ASSERT(pOldForeButton != nullptr && pOldBackButton != nullptr);
+	// Find the colors gallery in the ribbon bar
+	CMFCRibbonBaseElement* pColors = m_wndRibbonBar.FindByID(ID_GALLERY_COLORS);
+	ASSERT(pColors != nullptr);
 	
-	// Find the panel that contains the old foreground or background color buttons
-	CMFCRibbonPanel* pPanel = pOldForeButton->GetParentPanel();
+	// Find the panel that contains the colors gallery
+	CMFCRibbonPanel* pPanel = pColors->GetParentPanel();
 	ASSERT (pPanel != nullptr);
 	
-	// Find the index of the old buttons in the panel
-	int indexForeButton = pPanel->GetIndex(pOldForeButton);
-	int indexBackButton = pPanel->GetIndex(pOldBackButton);
-	ASSERT(indexForeButton != -1 && indexBackButton != -1);
-
-	// Remove the old button
-	pPanel->Remove(indexForeButton);
-
-	// Create and insert custom buttons
-	ForeBackColBtn* pMyForeButton = new ForeBackColBtn(ID_FORECOLOR, _T(""));
-	pPanel->Insert(pMyForeButton, indexForeButton);
+	// Create and insert new custom buttons for foreground and background colors
 	ForeBackColBtn* pMyBackButton = new ForeBackColBtn(ID_BACKCOLOR, _T(""));
-	pPanel->Insert(pMyBackButton, indexBackButton);
+	pPanel->Insert(pMyBackButton, 0);
+	
+	ForeBackColBtn* pMyForeButton = new ForeBackColBtn(ID_FORECOLOR, _T(""));
+	pPanel->Insert(pMyForeButton, 0);
 
 	// Find the size selection gallery
 	CMFCRibbonBaseElement* pGallery = m_wndRibbonBar.FindByID(ID_GALLERY_SIZE);

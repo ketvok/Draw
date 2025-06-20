@@ -43,6 +43,7 @@ BEGIN_MESSAGE_MAP(CDrawView, CScrollView)
 	ON_COMMAND(ID_GALLERY_SIZE, &CDrawView::OnGallerySize)
 	ON_COMMAND(ID_BACKCOLOR, &CDrawView::OnBackcolor)
 	ON_COMMAND(ID_GALLERY_SHAPES, &CDrawView::OnGalleryShapes)
+	ON_COMMAND(ID_GALLERY_COLORS, &CDrawView::OnGalleryColors)
 END_MESSAGE_MAP()
 
 // CDrawView construction/destruction
@@ -169,4 +170,10 @@ void CDrawView::OnGalleryShapes()
 {
 	// TODO: Add your command handler code here
 	MessageBox(_T("Shape selected!"), _T("Shape Selection"), MB_OK | MB_ICONINFORMATION);
+}
+
+void CDrawView::OnGalleryColors()
+{
+	// TODO: Add your command handler code here
+	MessageBox(_T("Color selected!"), _T("Color Selection"), MB_OK | MB_ICONINFORMATION);
 }

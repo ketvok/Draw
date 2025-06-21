@@ -51,9 +51,9 @@ void ForeBackColBtn::OnDraw(CDC* pDC)
 	}
 
 	// Add a border around the square
-	pDC->FillSolidRect(squareRect, RGB(128, 128, 128));
+	pDC->FillSolidRect(squareRect, RGB(128, 128, 128));  // Gray
 	squareRect.DeflateRect(1, 1);
-	pDC->FillSolidRect(squareRect, RGB(255, 255, 255));
+	pDC->FillSolidRect(squareRect, RGB(255, 255, 255));  // White
 	squareRect.DeflateRect(1, 1);
 
 	CRect textRect = rc;
@@ -63,15 +63,15 @@ void ForeBackColBtn::OnDraw(CDC* pDC)
 	case ID_FORECOLOR:
 		pDC->FillSolidRect(squareRect, foregroundColor);
 		// Set up the text rectangle below the square
-		textRect.top = squareRect.bottom += 7;  // Gap between square and text
-		// Prepare the text;	TODO: put in string table in resource.h
+		textRect.top = squareRect.bottom += 7;  // Align text with size gallery text
+		// Prepare the text;
 		text.LoadString(IDS_FORECOLOR_LABEL);
 		break;
 	case ID_BACKCOLOR:
 		pDC->FillSolidRect(squareRect, backgroundColor);
 		// Set up the text rectangle below the square
-		textRect.top = squareRect.bottom += 10;  // Gap between square and text
-		// Prepare the text;	TODO: put in string table in resource.h
+		textRect.top = squareRect.bottom += 10;  // Align text with size gallery text
+		// Prepare the text;
 		text.LoadString(IDS_BACKCOLOR_LABEL);
 		break;
 	}

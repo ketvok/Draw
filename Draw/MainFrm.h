@@ -53,6 +53,8 @@ protected:
 	afx_msg void OnUpdateFilePrintPreview(CCmdUI* pCmdUI);
 	DECLARE_MESSAGE_MAP()
 
+public:
+	afx_msg void OnUpdateButtonPen(CCmdUI* pCmdUI);
 };
 
 

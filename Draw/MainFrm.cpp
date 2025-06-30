@@ -93,6 +93,10 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	// ************************************************************
 
+	// Deselect first gallery item which is otherwise selected by default on app start
+	CMFCRibbonGallery* pGalleryShapes = (CMFCRibbonGallery*)m_wndRibbonBar.FindByID(ID_GALLERY_SHAPES);
+	pGalleryShapes->SelectItem(-1);
+
 
 	if (!m_wndStatusBar.Create(this))
 	{

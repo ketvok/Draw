@@ -176,6 +176,5 @@ void CMainFrame::OnUpdateFilePrintPreview(CCmdUI* pCmdUI)
 
 void CMainFrame::OnUpdateButtonPen(CCmdUI* pCmdUI)
 {
-	// TODO: Add your command update UI handler code here
 	pCmdUI->SetCheck();
 }

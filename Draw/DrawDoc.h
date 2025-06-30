@@ -14,7 +14,15 @@
 
 
 #pragma once
+#include "Drawable.h"
 
+enum drawingTool {
+	pen,
+	eraser,
+	ellipse,
+	rectangle,
+	roundRectangle
+};
 
 class CDrawDoc : public CDocument
 {
@@ -44,6 +52,12 @@ public:
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
 #endif
+	drawingTool drawingTool;
+	BOOL penStrokeInProgress;
+	CArray<Drawable*> drawableArr;
+	int size = 10;
+	COLORREF foreColor = RGB(0, 0, 0); // Default color is black
+	COLORREF backColor = RGB(255, 255, 255); // Default background color is white
 
 protected:
 
@@ -55,4 +69,7 @@ protected:
 	// Helper function that sets search content for a Search Handler
 	void SetSearchContent(const CString& value);
 #endif // SHARED_HANDLERS
+public:
+	afx_msg void OnButtonPen();
+	afx_msg void OnButtonEraser();
 };

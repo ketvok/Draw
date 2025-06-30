@@ -33,12 +33,14 @@
 IMPLEMENT_DYNCREATE(CDrawDoc, CDocument)
 
 BEGIN_MESSAGE_MAP(CDrawDoc, CDocument)
+	ON_COMMAND(ID_BUTTON_PEN, &CDrawDoc::OnButtonPen)
+	ON_COMMAND(ID_BUTTON_ERASER, &CDrawDoc::OnButtonEraser)
 END_MESSAGE_MAP()
 
 
 // CDrawDoc construction/destruction
 
-CDrawDoc::CDrawDoc() noexcept
+CDrawDoc::CDrawDoc() noexcept : drawingTool{ pen }
 {
 	// TODO: add one-time construction code here
 
@@ -146,3 +148,13 @@ void CDrawDoc::Dump(CDumpContext& dc) const
 
 
 // CDrawDoc commands
+
+void CDrawDoc::OnButtonPen()
+{
+	drawingTool = pen;
+}
+
+void CDrawDoc::OnButtonEraser()
+{
+	drawingTool = eraser;
+}

@@ -56,7 +56,6 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnForecolor();
-	afx_msg void OnGallerySize();
 	afx_msg void OnBackcolor();
 	afx_msg void OnGalleryShapes();
 	afx_msg void OnGalleryColors();

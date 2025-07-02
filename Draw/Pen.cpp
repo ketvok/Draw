@@ -19,7 +19,7 @@ void Pen::DrawYourself(CDC* pDC)
 			if (penSize == 1)
 			{
 				pDC->MoveTo(point);
-				pDC->SetPixel(point, penColor);
+				pDC->SetPixel(point, penColor);  // LineTo cannot draw a single pixel
 			}
 			else
 			{

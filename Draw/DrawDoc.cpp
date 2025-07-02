@@ -21,6 +21,7 @@
 #endif
 
 #include "DrawDoc.h"
+#include "MainFrm.h"
 
 #include <propkey.h>
 
@@ -35,6 +36,9 @@ IMPLEMENT_DYNCREATE(CDrawDoc, CDocument)
 BEGIN_MESSAGE_MAP(CDrawDoc, CDocument)
 	ON_COMMAND(ID_BUTTON_PEN, &CDrawDoc::OnButtonPen)
 	ON_COMMAND(ID_BUTTON_ERASER, &CDrawDoc::OnButtonEraser)
+	ON_UPDATE_COMMAND_UI(ID_BUTTON_PEN, &CDrawDoc::OnUpdateButtonPen)
+	ON_UPDATE_COMMAND_UI(ID_BUTTON_ERASER, &CDrawDoc::OnUpdateButtonEraser)
+	ON_COMMAND(ID_GALLERY_SIZE, &CDrawDoc::OnGallerySize)
 END_MESSAGE_MAP()
 
 
@@ -152,9 +156,68 @@ void CDrawDoc::Dump(CDumpContext& dc) const
 void CDrawDoc::OnButtonPen()
 {
 	drawingTool = pen;
+	
+	// Get the size selection gallery
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
+	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
+
+	// Set icons for pen tool sizes
+	pGallery->SetPalette(IDB_SIZES1234, 104);
 }
 
 void CDrawDoc::OnButtonEraser()
 {
 	drawingTool = eraser;
+
+	// Get the size selection gallery
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
+	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
+
+	// Set icons for eraser tool sizes
+	pGallery->SetPalette(IDB_SIZES46810, 104);
+}
+
+void CDrawDoc::OnUpdateButtonPen(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(drawingTool == pen ? 1 : 0);
+}
+
+void CDrawDoc::OnUpdateButtonEraser(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(drawingTool == eraser ? 1 : 0);
+}
+
+void CDrawDoc::OnGallerySize()
+{
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
+	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
+
+	int index = pGallery->GetSelectedItem();
+
+	switch (index)
+	{
+	case 0:
+		sizePen = 1;
+		sizeEraser = 4;
+		sizeShape = 1;
+		break;
+	case 1:
+		sizePen = 2;
+		sizeEraser = 6;
+		sizeShape = 3;
+		break;
+	case 2:
+		sizePen = 3;
+		sizeEraser = 8;
+		sizeShape = 5;
+		break;
+	case 3:
+		sizePen = 4;
+		sizeEraser = 10;
+		sizeShape = 8;
+		break;
+	}
 }

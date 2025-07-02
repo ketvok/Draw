@@ -41,7 +41,6 @@ BEGIN_MESSAGE_MAP(CDrawView, CScrollView)
 	ON_WM_CONTEXTMENU()
 	ON_WM_RBUTTONUP()
 	ON_COMMAND(ID_FORECOLOR, &CDrawView::OnForecolor)
-	ON_COMMAND(ID_GALLERY_SIZE, &CDrawView::OnGallerySize)
 	ON_COMMAND(ID_BACKCOLOR, &CDrawView::OnBackcolor)
 	ON_COMMAND(ID_GALLERY_SHAPES, &CDrawView::OnGalleryShapes)
 	ON_COMMAND(ID_GALLERY_COLORS, &CDrawView::OnGalleryColors)
@@ -168,12 +167,6 @@ CDrawDoc* CDrawView::GetDocument() const // non-debug version is inline
 
 // CDrawView message handlers
 
-void CDrawView::OnGallerySize()
-{
-	// TODO: Add your command handler code here
-	MessageBox(_T("Size selected!"), _T("Size Selection"), MB_OK | MB_ICONINFORMATION);
-}
-
 void CDrawView::OnForecolor()
 {
 	// TODO: Add your command handler code here
@@ -216,18 +209,18 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 	{
 	case pen:
 	{
-		Pen* pen = new Pen(GetDocument()->size, GetDocument()->foreColor);  // Create a new Pen object with the current size and color
+		Pen* pen = new Pen(GetDocument()->sizePen, GetDocument()->foreColor);  // Create a new Pen object with the current size and color
 		CClientDC dc(this);  // Get a device context for the client area of the view
 
-		CPen cpen(PS_SOLID, GetDocument()->size, GetDocument()->foreColor);
+		CPen cpen(PS_SOLID, GetDocument()->sizePen, GetDocument()->foreColor);
 		CPen* pOldPen = (CPen*)dc.SelectObject(&cpen);  // Select a red solid pen into the device context
 
-		if (GetDocument()->size == 1)
+		if (GetDocument()->sizePen == 1)
 		{
 			dc.MoveTo(point.x, point.y);  // Move the pen to the clicked point
 			dc.SetPixel(point.x, point.y, GetDocument()->foreColor);  // Set the pixel color at the clicked point
 		}
-		else
+		else  // TODO: If size is 2, set 4 pixels
 		{
 			dc.MoveTo(point.x, point.y);  // Move the pen to the clicked point
 			dc.SetDCPenColor(GetDocument()->foreColor);  // Set the pen color
@@ -281,7 +274,7 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 			if (GetDocument()->penStrokeInProgress)
 			{
 				CClientDC dc(this);  // Get a device context for the client area of the view
-				CPen cpen(PS_SOLID, GetDocument()->size, GetDocument()->foreColor);  // Create a solid pen with the specified size and color
+				CPen cpen(PS_SOLID, GetDocument()->sizePen, GetDocument()->foreColor);  // Create a solid pen with the specified size and color
 				CPen* pOldPen = (CPen*)dc.SelectObject(&cpen);  // Select the created pen into the device context
 				
 				size_t indexLast = GetDocument()->drawableArr.GetSize() - 1;  // Get the index of the last drawable object

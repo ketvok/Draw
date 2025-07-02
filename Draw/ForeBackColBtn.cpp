@@ -25,7 +25,7 @@ void ForeBackColBtn::OnDraw(CDC* pDC)
 
 	CRect rc = GetRect();
 
-	int squareSideLength = rc.Width() < rc.Height() ? rc.Width() : rc.Height();
+	ASSERT(rc.Width() < rc.Height());
 
 	// Position the square at the top of the button rectangle
 	int squareBottom = rc.top + rc.Width();

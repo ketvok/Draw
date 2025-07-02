@@ -34,7 +34,6 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWndEx)
 	ON_COMMAND(ID_FILE_PRINT_DIRECT, &CMainFrame::OnFilePrint)
 	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CMainFrame::OnFilePrintPreview)
 	ON_UPDATE_COMMAND_UI(ID_FILE_PRINT_PREVIEW, &CMainFrame::OnUpdateFilePrintPreview)
-	ON_UPDATE_COMMAND_UI(ID_BUTTON_PEN, &CMainFrame::OnUpdateButtonPen)
 END_MESSAGE_MAP()
 
 // CMainFrame construction/destruction
@@ -92,6 +91,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	pMyBackButton->SetCustomRegularSize(gallerySize);
 
 	// ************************************************************
+
 
 	// Deselect first gallery item which is otherwise selected by default on app start
 	CMFCRibbonGallery* pGalleryShapes = (CMFCRibbonGallery*)m_wndRibbonBar.FindByID(ID_GALLERY_SHAPES);
@@ -172,9 +172,4 @@ void CMainFrame::OnFilePrintPreview()
 void CMainFrame::OnUpdateFilePrintPreview(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(IsPrintPreview());
-}
-
-void CMainFrame::OnUpdateButtonPen(CCmdUI* pCmdUI)
-{
-	pCmdUI->SetCheck();
 }

@@ -53,9 +53,11 @@ public:
 	virtual void Dump(CDumpContext& dc) const;
 #endif
 	drawingTool drawingTool;
-	BOOL penStrokeInProgress;
+	BOOL penStrokeInProgress = FALSE;
 	CArray<Drawable*> drawableArr;
-	int size = 10;
+	int sizePen{ 1 };
+	int sizeEraser{ 4 };
+	int sizeShape{ 1 };
 	COLORREF foreColor = RGB(0, 0, 0); // Default color is black
 	COLORREF backColor = RGB(255, 255, 255); // Default background color is white
 
@@ -72,4 +74,7 @@ protected:
 public:
 	afx_msg void OnButtonPen();
 	afx_msg void OnButtonEraser();
+	afx_msg void OnUpdateButtonPen(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateButtonEraser(CCmdUI* pCmdUI);
+	afx_msg void OnGallerySize();
 };

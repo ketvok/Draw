@@ -205,25 +205,51 @@ void CDrawView::OnFill()
 
 void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 {
-	switch (GetDocument()->drawingTool)
+	CDrawDoc* doc = GetDocument();
+
+	switch (doc->drawingTool)
 	{
 	case pen:
 	{
-		Pen* pen = new Pen(GetDocument()->sizePen, GetDocument()->foreColor);  // Create a new Pen object with the current size and color
+		Pen* pen = new Pen(doc->sizePen, doc->foreColor);  // Create a new Pen object with the current size and color
 		CClientDC dc(this);  // Get a device context for the client area of the view
 
-		CPen cpen(PS_SOLID, GetDocument()->sizePen, GetDocument()->foreColor);
+		CPen cpen(PS_SOLID, doc->sizePen, doc->foreColor);
 		CPen* pOldPen = (CPen*)dc.SelectObject(&cpen);  // Select a red solid pen into the device context
 
-		if (GetDocument()->sizePen == 1)
+		if (doc->sizePen == 1)
 		{
-			dc.MoveTo(point.x, point.y);  // Move the pen to the clicked point
-			dc.SetPixel(point.x, point.y, GetDocument()->foreColor);  // Set the pixel color at the clicked point
+			dc.MoveTo(point.x, point.y);
+			dc.SetPixel(point.x, point.y, doc->foreColor);
 		}
-		else  // TODO: If size is 2, set 4 pixels
+		else if (doc->sizePen == 2)  // If the pen size is 2, draw a 2x2 square
+		{
+			dc.MoveTo(point.x, point.y);
+			dc.SetPixel(point.x, point.y, doc->foreColor);
+			dc.SetPixel(point.x - 1, point.y, doc->foreColor);
+			dc.SetPixel(point.x, point.y - 1, doc->foreColor);
+			dc.SetPixel(point.x - 1, point.y - 1, doc->foreColor);
+		}
+		else if (doc->sizePen == 4)  // If pen size is 4, draw a 2 pixel wide cross
+		{
+			dc.MoveTo(point.x, point.y);
+			dc.SetPixel(point.x, point.y, doc->foreColor);
+			dc.SetPixel(point.x, point.y - 1, doc->foreColor);
+			dc.SetPixel(point.x, point.y - 2, doc->foreColor);
+			dc.SetPixel(point.x, point.y + 1, doc->foreColor);
+			dc.SetPixel(point.x - 1, point.y, doc->foreColor);
+			dc.SetPixel(point.x - 1, point.y - 1, doc->foreColor);
+			dc.SetPixel(point.x - 1, point.y - 2, doc->foreColor);
+			dc.SetPixel(point.x - 1, point.y + 1, doc->foreColor);
+			dc.SetPixel(point.x - 2, point.y, doc->foreColor);
+			dc.SetPixel(point.x - 2, point.y - 1, doc->foreColor);
+			dc.SetPixel(point.x + 1, point.y, doc->foreColor);
+			dc.SetPixel(point.x + 1, point.y - 1, doc->foreColor);
+		}
+		else
 		{
 			dc.MoveTo(point.x, point.y);  // Move the pen to the clicked point
-			dc.SetDCPenColor(GetDocument()->foreColor);  // Set the pen color
+			dc.SetDCPenColor(doc->foreColor);  // Set the pen color
 			dc.LineTo(point.x, point.y);  // Draw a line to the clicked point
 		}
 
@@ -231,7 +257,7 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 
 		pen->addPoint(point);  // Add the point to the pen's container of points
 		pen->setPrevPoint(point);  // Mark added point as previous for future reference
-		GetDocument()->drawableArr.Add(pen);  // Add pen object to array of objects to be drawn
+		doc->drawableArr.Add(pen);  // Add pen object to array of objects to be drawn
 		break;
 	}
 	case eraser:

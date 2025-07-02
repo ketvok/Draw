@@ -212,7 +212,7 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 	case pen:
 	{
 		Pen* pen = new Pen(doc->sizePen, doc->foreColor);  // Create a new Pen object with the current size and color
-		CClientDC dc(this);  // Get a device context for the client area of the view
+		CClientDC dc(this);  // Calls GetDC at construction time and ReleaseDC at destruction time
 
 		CPen cpen(PS_SOLID, doc->sizePen, doc->foreColor);
 		CPen* pOldPen = (CPen*)dc.SelectObject(&cpen);  // Select a red solid pen into the device context

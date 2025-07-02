@@ -21,6 +21,30 @@ void Pen::DrawYourself(CDC* pDC)
 				pDC->MoveTo(point);
 				pDC->SetPixel(point, penColor);  // LineTo cannot draw a single pixel
 			}
+			else if (penSize == 2)
+			{ 
+				pDC->MoveTo(point);
+				pDC->SetPixel(point, penColor);
+				pDC->SetPixel(point.x - 1, point.y, penColor);
+				pDC->SetPixel(point.x, point.y - 1, penColor);
+				pDC->SetPixel(point.x - 1, point.y - 1, penColor);
+			}
+			else if (penSize == 4)
+			{
+				pDC->MoveTo(point.x, point.y);
+				pDC->SetPixel(point.x, point.y, penColor);
+				pDC->SetPixel(point.x, point.y - 1, penColor);
+				pDC->SetPixel(point.x, point.y - 2, penColor);
+				pDC->SetPixel(point.x, point.y + 1, penColor);
+				pDC->SetPixel(point.x - 1, point.y, penColor);
+				pDC->SetPixel(point.x - 1, point.y - 1, penColor);
+				pDC->SetPixel(point.x - 1, point.y - 2, penColor);
+				pDC->SetPixel(point.x - 1, point.y + 1, penColor);
+				pDC->SetPixel(point.x - 2, point.y, penColor);
+				pDC->SetPixel(point.x - 2, point.y - 1, penColor);
+				pDC->SetPixel(point.x + 1, point.y, penColor);
+				pDC->SetPixel(point.x + 1, point.y - 1, penColor);
+			}
 			else
 			{
 				pDC->MoveTo(point);

@@ -29,6 +29,8 @@
 #define IDB_OUTLINES                    312
 #define IDB_FILLS                       313
 #define IDB_SIZES46810                  314
+#define IDC_PEN_CURSOR                  315
+#define IDC_ERASER_CURSOR               316
 #define ID_WRITE_PASTEASHYPERLINK       32770
 #define ID_BUTTON_ERASER                32774
 #define ID_BUTTON_PEN                   32775
@@ -44,7 +46,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        315
+#define _APS_NEXT_RESOURCE_VALUE        317
 #define _APS_NEXT_COMMAND_VALUE         32798
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310

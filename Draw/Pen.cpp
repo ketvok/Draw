@@ -5,7 +5,10 @@ Pen::Pen(int size, COLORREF color) : pen{ PS_SOLID, size, color }, penSize{ size
 
 void Pen::DrawYourself(CDC* pDC)
 {
-	pDC->SelectObject(pen);  // Nothing is being drawn if a pen is not selected into pDC
+	// For pen sizes >= 5, MoveTo/LineTo produce good results for drawing
+	// a dot, but for smaller sizes I do it manually for nicer results.
+
+	pDC->SelectObject(&pen);  // Nothing is being drawn if a pen is not selected into pDC
 	
 	if (points.GetSize() == 0)
 	{
@@ -21,7 +24,7 @@ void Pen::DrawYourself(CDC* pDC)
 				pDC->MoveTo(point);
 				pDC->SetPixel(point, penColor);  // LineTo cannot draw a single pixel
 			}
-			else if (penSize == 2)
+			else if (penSize == 2)  // If pen size is 2, draw a 2 x 2 square
 			{ 
 				pDC->MoveTo(point);
 				pDC->SetPixel(point, penColor);
@@ -29,10 +32,10 @@ void Pen::DrawYourself(CDC* pDC)
 				pDC->SetPixel(point.x, point.y - 1, penColor);
 				pDC->SetPixel(point.x - 1, point.y - 1, penColor);
 			}
-			else if (penSize == 4)
+			else if (penSize == 4)  // If pen size is 4, draw a 2 pixel wide cross
 			{
-				pDC->MoveTo(point.x, point.y);
-				pDC->SetPixel(point.x, point.y, penColor);
+				pDC->MoveTo(point);
+				pDC->SetPixel(point, penColor);
 				pDC->SetPixel(point.x, point.y - 1, penColor);
 				pDC->SetPixel(point.x, point.y - 2, penColor);
 				pDC->SetPixel(point.x, point.y + 1, penColor);
@@ -45,7 +48,7 @@ void Pen::DrawYourself(CDC* pDC)
 				pDC->SetPixel(point.x + 1, point.y, penColor);
 				pDC->SetPixel(point.x + 1, point.y - 1, penColor);
 			}
-			else
+			else  // If pen size is > 4, use MoveTo/LineTo for drawing a dot at first point
 			{
 				pDC->MoveTo(point);
 				pDC->LineTo(point);
@@ -58,17 +61,17 @@ void Pen::DrawYourself(CDC* pDC)
 	}
 }
 
-void Pen::addPoint(const POINT& point)
+void Pen::AddPoint(const CPoint& point)
 {
 	points.Add(point);
 }
 
-void Pen::setPrevPoint(const POINT& point)
+void Pen::SetPrevPoint(const CPoint& point)
 {
 	prevPoint = point;
 }
 
-const POINT& Pen::getPrevPoint()
+const CPoint& Pen::GetPrevPoint() const
 {
 	return prevPoint;
 }

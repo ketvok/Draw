@@ -187,6 +187,7 @@
     <ClInclude Include="Drawable.h" />
     <ClInclude Include="DrawDoc.h" />
     <ClInclude Include="DrawView.h" />
+    <ClInclude Include="Eraser.h" />
     <ClInclude Include="ForeBackColBtn.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="MainFrm.h" />
@@ -200,6 +201,7 @@
     <ClCompile Include="Drawable.cpp" />
     <ClCompile Include="DrawDoc.cpp" />
     <ClCompile Include="DrawView.cpp" />
+    <ClCompile Include="Eraser.cpp" />
     <ClCompile Include="ForeBackColBtn.cpp" />
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="pch.cpp">
@@ -232,7 +234,9 @@
     <Image Include="res\writesmall.bmp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="res\Cursor158.cur" />
     <None Include="res\Draw.rc2" />
+    <None Include="res\Eraser.cur" />
     <None Include="res\ribbon.mfcribbon-ms" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

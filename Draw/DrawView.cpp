@@ -23,6 +23,7 @@
 #include "DrawDoc.h"
 #include "DrawView.h"
 #include "Pen.h"
+#include "Eraser.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -47,8 +48,8 @@ BEGIN_MESSAGE_MAP(CDrawView, CScrollView)
 	ON_COMMAND(ID_OUTLINE, &CDrawView::OnOutline)
 	ON_COMMAND(ID_FILL, &CDrawView::OnFill)
 	ON_WM_LBUTTONDOWN()
-	ON_WM_LBUTTONUP()
 	ON_WM_MOUSEMOVE()
+	ON_WM_SETCURSOR()
 END_MESSAGE_MAP()
 
 // CDrawView construction/destruction
@@ -79,18 +80,7 @@ void CDrawView::OnDraw(CDC* pDC)
     if (!pDoc)
         return;
 
-	if (pDoc->drawableArr.GetSize() == 0) {  // If no drawable objects yet exist, draw nothing
-		return;
-	}
-
-	else
-	{
-		for (int i = 0; i < pDoc->drawableArr.GetSize(); i++)  // Loop through all drawable objects
-		{
-			pDoc->drawableArr[i]->DrawYourself(pDC);  // Call the draw method of each drawable object
-		}
-
-	}
+	pDoc->DrawAll(pDC);
 }
 
 void CDrawView::OnInitialUpdate()
@@ -205,128 +195,181 @@ void CDrawView::OnFill()
 
 void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 {
-	CDrawDoc* doc = GetDocument();
+	// As soon as the left mouse button is pressed down, a new
+	// Drawable object is created.
 
-	switch (doc->drawingTool)
+	CDrawDoc* pDoc = GetDocument();
+	CClientDC dc(this);  // Calls GetDC at construction time and ReleaseDC at destruction time
+
+	switch (pDoc->GetDrawingTool())
 	{
 	case pen:
 	{
-		Pen* pen = new Pen(doc->sizePen, doc->foreColor);  // Create a new Pen object with the current size and color
-		CClientDC dc(this);  // Calls GetDC at construction time and ReleaseDC at destruction time
+		// For pen sizes >= 5, MoveTo/LineTo produce good results for drawing
+		// a dot, but for smaller sizes I do it manually for nicer results.
 
-		CPen cpen(PS_SOLID, doc->sizePen, doc->foreColor);
-		CPen* pOldPen = (CPen*)dc.SelectObject(&cpen);  // Select a red solid pen into the device context
+		// Create a new Drawable Pen object
+		Pen* pen = new Pen(pDoc->GetSizePen(), pDoc->foreColor);
 
-		if (doc->sizePen == 1)
+		pDoc->AddObject(pen);
+		pDoc->AddPoint(point);
+		pDoc->SetPrevPoint(point);  // Mark added point as previous for future reference
+
+		// Select a pen with the current size and color
+		CPen cpen(PS_SOLID, pDoc->GetSizePen(), pDoc->foreColor);
+		CPen* pOldPen = (CPen*)dc.SelectObject(&cpen);
+
+		if (pDoc->GetSizePen() == 1)
 		{
 			dc.MoveTo(point.x, point.y);
-			dc.SetPixel(point.x, point.y, doc->foreColor);
+			dc.SetPixel(point.x, point.y, pDoc->foreColor);
 		}
-		else if (doc->sizePen == 2)  // If the pen size is 2, draw a 2x2 square
+		else if (pDoc->GetSizePen() == 2)  // If pen size is 2, draw a 2 x 2 square
 		{
 			dc.MoveTo(point.x, point.y);
-			dc.SetPixel(point.x, point.y, doc->foreColor);
-			dc.SetPixel(point.x - 1, point.y, doc->foreColor);
-			dc.SetPixel(point.x, point.y - 1, doc->foreColor);
-			dc.SetPixel(point.x - 1, point.y - 1, doc->foreColor);
+			dc.SetPixel(point.x, point.y, pDoc->foreColor);
+			dc.SetPixel(point.x - 1, point.y, pDoc->foreColor);
+			dc.SetPixel(point.x, point.y - 1, pDoc->foreColor);
+			dc.SetPixel(point.x - 1, point.y - 1, pDoc->foreColor);
 		}
-		else if (doc->sizePen == 4)  // If pen size is 4, draw a 2 pixel wide cross
+		else if (pDoc->GetSizePen() == 4)  // If pen size is 4, draw a 2 pixel wide cross
 		{
 			dc.MoveTo(point.x, point.y);
-			dc.SetPixel(point.x, point.y, doc->foreColor);
-			dc.SetPixel(point.x, point.y - 1, doc->foreColor);
-			dc.SetPixel(point.x, point.y - 2, doc->foreColor);
-			dc.SetPixel(point.x, point.y + 1, doc->foreColor);
-			dc.SetPixel(point.x - 1, point.y, doc->foreColor);
-			dc.SetPixel(point.x - 1, point.y - 1, doc->foreColor);
-			dc.SetPixel(point.x - 1, point.y - 2, doc->foreColor);
-			dc.SetPixel(point.x - 1, point.y + 1, doc->foreColor);
-			dc.SetPixel(point.x - 2, point.y, doc->foreColor);
-			dc.SetPixel(point.x - 2, point.y - 1, doc->foreColor);
-			dc.SetPixel(point.x + 1, point.y, doc->foreColor);
-			dc.SetPixel(point.x + 1, point.y - 1, doc->foreColor);
+			dc.SetPixel(point.x, point.y, pDoc->foreColor);
+			dc.SetPixel(point.x, point.y - 1, pDoc->foreColor);
+			dc.SetPixel(point.x, point.y - 2, pDoc->foreColor);
+			dc.SetPixel(point.x, point.y + 1, pDoc->foreColor);
+			dc.SetPixel(point.x - 1, point.y, pDoc->foreColor);
+			dc.SetPixel(point.x - 1, point.y - 1, pDoc->foreColor);
+			dc.SetPixel(point.x - 1, point.y - 2, pDoc->foreColor);
+			dc.SetPixel(point.x - 1, point.y + 1, pDoc->foreColor);
+			dc.SetPixel(point.x - 2, point.y, pDoc->foreColor);
+			dc.SetPixel(point.x - 2, point.y - 1, pDoc->foreColor);
+			dc.SetPixel(point.x + 1, point.y, pDoc->foreColor);
+			dc.SetPixel(point.x + 1, point.y - 1, pDoc->foreColor);
 		}
-		else
+		else  // If pen size is > 4, use MoveTo/LineTo for drawing a dot at first point
 		{
-			dc.MoveTo(point.x, point.y);  // Move the pen to the clicked point
-			dc.SetDCPenColor(doc->foreColor);  // Set the pen color
-			dc.LineTo(point.x, point.y);  // Draw a line to the clicked point
+			dc.MoveTo(point.x, point.y);
+			dc.SetDCPenColor(pDoc->foreColor);
+			dc.LineTo(point.x, point.y);
 		}
 
-		dc.SelectObject(pOldPen);  // Restore the old pen
+		// Cleanup
+		dc.SelectObject(pOldPen);
 
-		pen->addPoint(point);  // Add the point to the pen's container of points
-		pen->setPrevPoint(point);  // Mark added point as previous for future reference
-		doc->drawableArr.Add(pen);  // Add pen object to array of objects to be drawn
 		break;
 	}
 	case eraser:
 	{
+		// Create a new Drawable Eraser object
+		Eraser* eraser = new Eraser(pDoc->GetSizeEraser(), pDoc->backColor);
+
+		pDoc->AddObject(eraser);
+		pDoc->AddPoint(point);
+
+		// Select a pen and brush with the current size and color
+		CPen cpen(PS_SOLID, 1, pDoc->backColor);
+		CPen* pOldPen = (CPen*)dc.SelectObject(&cpen);
+		CBrush cbrush(pDoc->backColor);
+		CBrush* pOldBrush = (CBrush*)dc.SelectObject(&cbrush);
+
+		// Draw a rectangle at the current point with the size of the eraser
+		Rectangle(dc.m_hDC, point.x - pDoc->GetSizeEraser() / 2, point.y - pDoc->GetSizeEraser() / 2, point.x + pDoc->GetSizeEraser() / 2, point.y + pDoc->GetSizeEraser() / 2);
+
+		// Cleanup
+		dc.SelectObject(pOldPen);
+		dc.SelectObject(pOldBrush);
+
 		break;
 	}
 	}
-
-	//CScrollView::OnLButtonDown(nFlags, point);
-}
-
-void CDrawView::OnLButtonUp(UINT nFlags, CPoint point)
-{
-	switch (GetDocument()->drawingTool)
-	{
-	case pen:
-	{
-		if (GetDocument()->penStrokeInProgress)
-		{
-			GetDocument()->penStrokeInProgress = FALSE;
-		}
-	}
-	case eraser:
-	{
-		break;
-	}
-	}
-
-	//CScrollView::OnLButtonUp(nFlags, point);
 }
 
 void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 {
-	if (GetKeyState(VK_LBUTTON) & 0x8000)  // High order bit is set if left mouse button is pressed
+
+	CDrawDoc* pDoc = GetDocument();
+
+	// myTODO: if drawableArr is empty, create a new Drawable object inside switch statement! +++++++++++++++++ASSERT @ DrawDoc.cpp Line 72+++++++++++++++++++++++++++++
+	// OR
+	// Do it like in microsoft Paint: when it is clicked on the ribbon and dragged into the canvas, nothing happens and cursor remains arrow.
+
+	CClientDC dc(this);  // Calls GetDC at construction time and ReleaseDC at destruction time
+
+	if (GetKeyState(VK_LBUTTON) & 0x8000)  // If the high order bit of return value is set, the left mouse button is down
 	{
-		switch (GetDocument()->drawingTool)
+		switch (pDoc->GetDrawingTool())
 		{
 		case pen:
 		{
-			if (GetDocument()->penStrokeInProgress)
-			{
-				CClientDC dc(this);  // Get a device context for the client area of the view
-				CPen cpen(PS_SOLID, GetDocument()->sizePen, GetDocument()->foreColor);  // Create a solid pen with the specified size and color
-				CPen* pOldPen = (CPen*)dc.SelectObject(&cpen);  // Select the created pen into the device context
-				
-				size_t indexLast = GetDocument()->drawableArr.GetSize() - 1;  // Get the index of the last drawable object
-				Pen* pen = (Pen*)GetDocument()->drawableArr[indexLast];  // Get the current pen object
-				pen->addPoint(point);  // Add the new point to the pen's container of points
-				
-				dc.MoveTo(pen->getPrevPoint());  // Move to the previous point
-				dc.LineTo(point);  // Draw a line to the current point
-				pen->setPrevPoint(point);  // Update the previous point to the current point
+			// Add the current point to the last Drawable object (Pen)
+			pDoc->AddPoint(point);
 
-				dc.SelectObject(pOldPen);  // Restore the old pen
-			}
-			else
-			{
-				GetDocument()->penStrokeInProgress = TRUE;  // Mark that a pen stroke is in progress
-			}
+			// Select a pen with the current size and color
+			CPen cpen(PS_SOLID, pDoc->GetSizePen(), pDoc->foreColor);
+			CPen* pOldPen = (CPen*)dc.SelectObject(&cpen);
+			
+			// Draw a line from previous point to the current point
+			dc.MoveTo(pDoc->GetPrevPoint());
+			dc.LineTo(point);
+			
+			// Set the current point as previous
+			pDoc->SetPrevPoint(point);
+
+			// Cleanup
+			dc.SelectObject(pOldPen);
+			
 			break;
 		}
 		case eraser:
 		{
+			// Add the current point to the last Drawable object (Eraser)
+			pDoc->AddPoint(point);
+
+			// Select a pen and brush with the background color
+			CPen cpen(PS_SOLID, 1, pDoc->backColor);
+			CPen* pOldPen = (CPen*)dc.SelectObject(&cpen);
+			CBrush cbrush(pDoc->backColor);
+			CBrush* pOldBrush = (CBrush*)dc.SelectObject(&cbrush);
+
+			// Draw a rectangle at the current point with the size of the eraser
+			Rectangle(dc.m_hDC, point.x - pDoc->GetSizeEraser() / 2, point.y - pDoc->GetSizeEraser() / 2, point.x + pDoc->GetSizeEraser() / 2, point.y + pDoc->GetSizeEraser() / 2);
+
+			// Cleanup
+			dc.SelectObject(pOldPen);
+
 			break;
 		}
-		default:
-			break;
 		}
 	}
+}
 
-	//CScrollView::OnMouseMove(nFlags, point);
+BOOL CDrawView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
+{
+	// Each time the cursor moves and mouse input is not captured, the
+	// system sends a WM_SETCURSOR message to the window in which the
+	// cursor is moving.
+
+	HINSTANCE hInstance = AfxGetInstanceHandle();
+	
+	switch (GetDocument()->GetDrawingTool())
+	{
+	case pen:
+	{
+		HCURSOR curPen;
+		curPen = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_PEN_CURSOR));
+		SetCursor(curPen);
+		break;
+	}
+	case eraser:
+	{
+		HCURSOR curEraser;
+		curEraser = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_ERASER_CURSOR));
+		SetCursor(curEraser);
+		break;
+	}
+	}
+
+	return TRUE;
 }

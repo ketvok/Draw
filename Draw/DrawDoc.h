@@ -26,12 +26,28 @@ enum drawingTool {
 
 class CDrawDoc : public CDocument
 {
+// Private data members
+	drawingTool selectedDrawingTool;
+	CArray<Drawable*> drawableArr;
+	int sizePen;
+	int sizeEraser;
+	int sizeShape;
+
 protected: // create from serialization only
 	CDrawDoc() noexcept;
 	DECLARE_DYNCREATE(CDrawDoc)
 
 // Attributes
 public:
+	drawingTool GetDrawingTool() const { return selectedDrawingTool; };
+	void AddPoint(const CPoint& point);
+	void AddObject(Drawable* pObject);
+	const POINT& GetPrevPoint();
+	void SetPrevPoint(const CPoint& point);
+	void DrawAll(CDC* pDC) const;
+	const int GetSizePen() const { return sizePen; };
+	const int GetSizeEraser() const { return sizeEraser; };
+	const int GetSizeShape() const { return sizeShape; };
 
 // Operations
 public:
@@ -52,14 +68,8 @@ public:
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
 #endif
-	drawingTool drawingTool;
-	BOOL penStrokeInProgress = FALSE;
-	CArray<Drawable*> drawableArr;
-	int sizePen{ 1 };
-	int sizeEraser{ 4 };
-	int sizeShape{ 1 };
-	COLORREF foreColor = RGB(0, 0, 0); // Default color is black
-	COLORREF backColor = RGB(255, 255, 255); // Default background color is white
+	COLORREF foreColor = RGB(0, 0, 0); // TMP: Default color is black
+	COLORREF backColor = RGB(255, 255, 255); // TMP: Default background color is white
 
 protected:
 

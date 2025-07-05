@@ -22,6 +22,8 @@
 
 #include "DrawDoc.h"
 #include "MainFrm.h"
+#include "Pen.h"
+#include "Eraser.h"
 
 #include <propkey.h>
 
@@ -44,7 +46,7 @@ END_MESSAGE_MAP()
 
 // CDrawDoc construction/destruction
 
-CDrawDoc::CDrawDoc() noexcept : drawingTool{ pen }
+CDrawDoc::CDrawDoc() noexcept : selectedDrawingTool{ pen }, sizePen{ 1 }, sizeEraser{ 4 }, sizeShape{ 1 }
 {
 	// TODO: add one-time construction code here
 
@@ -63,6 +65,64 @@ BOOL CDrawDoc::OnNewDocument()
 	// (SDI documents will reuse this document)
 
 	return TRUE;
+}
+
+void CDrawDoc::AddPoint(const CPoint& point)
+{
+	ASSERT(drawableArr.GetSize() > 0);
+
+	switch (selectedDrawingTool)
+	{
+	case pen:
+	{
+		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.GetSize() - 1]);
+		penObj->AddPoint(point);
+		break;
+	}
+	case eraser:
+	{
+		Eraser* eraserObj = dynamic_cast<Eraser*>(drawableArr[drawableArr.GetSize() - 1]);
+		eraserObj->AddPoint(point);
+		break;
+	}
+	}
+}
+
+void CDrawDoc::AddObject(Drawable* pObject)
+{
+	drawableArr.Add(pObject);
+}
+
+const POINT& CDrawDoc::GetPrevPoint()
+{
+	ASSERT(drawableArr.GetSize() > 0);
+
+	switch (selectedDrawingTool)
+	{
+	case pen:
+		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.GetSize() - 1]);
+		return penObj->GetPrevPoint();
+	}
+}
+
+void CDrawDoc::SetPrevPoint(const CPoint& point)
+{
+	ASSERT(drawableArr.GetSize() > 0);
+
+	switch (selectedDrawingTool)
+	{
+	case pen:
+		dynamic_cast<Pen*>(drawableArr[drawableArr.GetSize() - 1])->SetPrevPoint(point);
+		break;
+	}
+}
+
+void CDrawDoc::DrawAll(CDC* pDC) const
+{
+	for (int i = 0; i < drawableArr.GetSize(); ++i)
+	{
+		drawableArr[i]->DrawYourself(pDC);
+	}
 }
 
 
@@ -155,7 +215,7 @@ void CDrawDoc::Dump(CDumpContext& dc) const
 
 void CDrawDoc::OnButtonPen()
 {
-	drawingTool = pen;
+	selectedDrawingTool = pen;
 	
 	// Get the size selection gallery
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
@@ -168,7 +228,7 @@ void CDrawDoc::OnButtonPen()
 
 void CDrawDoc::OnButtonEraser()
 {
-	drawingTool = eraser;
+	selectedDrawingTool = eraser;
 
 	// Get the size selection gallery
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
@@ -181,12 +241,12 @@ void CDrawDoc::OnButtonEraser()
 
 void CDrawDoc::OnUpdateButtonPen(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(drawingTool == pen ? 1 : 0);
+	pCmdUI->SetCheck(selectedDrawingTool == pen ? 1 : 0);
 }
 
 void CDrawDoc::OnUpdateButtonEraser(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(drawingTool == eraser ? 1 : 0);
+	pCmdUI->SetCheck(selectedDrawingTool == eraser ? 1 : 0);
 }
 
 void CDrawDoc::OnGallerySize()

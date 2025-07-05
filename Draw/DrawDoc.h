@@ -15,6 +15,7 @@
 
 #pragma once
 #include "Drawable.h"
+#include <memory>
 
 enum drawingTool {
 	pen,
@@ -28,7 +29,7 @@ class CDrawDoc : public CDocument
 {
 // Private data members
 	drawingTool selectedDrawingTool;
-	CArray<Drawable*> drawableArr;
+	CArray<std::shared_ptr<Drawable>> drawableArr;
 	int sizePen;
 	int sizeEraser;
 	int sizeShape;
@@ -41,7 +42,7 @@ protected: // create from serialization only
 public:
 	drawingTool GetDrawingTool() const { return selectedDrawingTool; };
 	void AddPoint(const CPoint& point);
-	void AddObject(Drawable* pObject);
+	void AddObject(std::shared_ptr<Drawable> pObject);
 	const POINT& GetPrevPoint();
 	void SetPrevPoint(const CPoint& point);
 	void DrawAll(CDC* pDC) const;

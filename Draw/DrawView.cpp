@@ -209,7 +209,7 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 		// a dot, but for smaller sizes I do it manually for nicer results.
 
 		// Create a new Drawable Pen object
-		Pen* pen = new Pen(pDoc->GetSizePen(), pDoc->foreColor);
+		auto pen = std::make_shared<Pen>(pDoc->GetSizePen(), pDoc->foreColor);
 
 		pDoc->AddObject(pen);
 		pDoc->AddPoint(point);
@@ -263,7 +263,7 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 	case eraser:
 	{
 		// Create a new Drawable Eraser object
-		Eraser* eraser = new Eraser(pDoc->GetSizeEraser(), pDoc->backColor);
+		auto eraser = std::make_shared<Eraser>(pDoc->GetSizeEraser(), pDoc->backColor);
 
 		pDoc->AddObject(eraser);
 		pDoc->AddPoint(point);

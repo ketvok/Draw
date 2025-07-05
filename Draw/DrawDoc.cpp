@@ -75,20 +75,20 @@ void CDrawDoc::AddPoint(const CPoint& point)
 	{
 	case pen:
 	{
-		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.GetSize() - 1]);
+		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.GetSize() - 1].get());
 		penObj->AddPoint(point);
 		break;
 	}
 	case eraser:
 	{
-		Eraser* eraserObj = dynamic_cast<Eraser*>(drawableArr[drawableArr.GetSize() - 1]);
+		Eraser* eraserObj = dynamic_cast<Eraser*>(drawableArr[drawableArr.GetSize() - 1].get());
 		eraserObj->AddPoint(point);
 		break;
 	}
 	}
 }
 
-void CDrawDoc::AddObject(Drawable* pObject)
+void CDrawDoc::AddObject(std::shared_ptr<Drawable> pObject)
 {
 	drawableArr.Add(pObject);
 }
@@ -100,7 +100,7 @@ const POINT& CDrawDoc::GetPrevPoint()
 	switch (selectedDrawingTool)
 	{
 	case pen:
-		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.GetSize() - 1]);
+		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.GetSize() - 1].get());
 		return penObj->GetPrevPoint();
 	}
 }
@@ -112,7 +112,7 @@ void CDrawDoc::SetPrevPoint(const CPoint& point)
 	switch (selectedDrawingTool)
 	{
 	case pen:
-		dynamic_cast<Pen*>(drawableArr[drawableArr.GetSize() - 1])->SetPrevPoint(point);
+		dynamic_cast<Pen*>(drawableArr[drawableArr.GetSize() - 1].get())->SetPrevPoint(point);
 		break;
 	}
 }

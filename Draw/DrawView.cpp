@@ -50,6 +50,7 @@ BEGIN_MESSAGE_MAP(CDrawView, CScrollView)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
 	ON_WM_SETCURSOR()
+	ON_WM_LBUTTONUP()
 END_MESSAGE_MAP()
 
 // CDrawView construction/destruction
@@ -197,6 +198,11 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	// As soon as the left mouse button is pressed down, a new
 	// Drawable object is created.
+
+	// Capture the mouse input to this window so that it receives all
+	// mouse messages. This is necessary to receive mouse-move messages
+	// past the edge of the window.
+	SetCapture();
 
 	CDrawDoc* pDoc = GetDocument();
 	CClientDC dc(this);  // Calls GetDC at construction time and ReleaseDC at destruction time
@@ -372,4 +378,9 @@ BOOL CDrawView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 	}
 
 	return TRUE;
+}
+void CDrawView::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	// Releases the mouse capture from OnLButtonDown.
+	ReleaseCapture();
 }

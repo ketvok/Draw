@@ -55,7 +55,7 @@ END_MESSAGE_MAP()
 
 // CDrawView construction/destruction
 
-CDrawView::CDrawView() noexcept
+CDrawView::CDrawView() noexcept : isDrawing{FALSE}
 {
 	// TODO: add construction code here
 }
@@ -204,6 +204,8 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 	// past the edge of the window.
 	SetCapture();
 
+	isDrawing = TRUE;  // Mark that drawing has started
+
 	CDrawDoc* pDoc = GetDocument();
 	CClientDC dc(this);  // Calls GetDC at construction time and ReleaseDC at destruction time
 
@@ -294,12 +296,10 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 
 void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 {
+	if (!isDrawing)  // If drawing is not in progress, do nothing.
+		return;
 
 	CDrawDoc* pDoc = GetDocument();
-
-	// myTODO: if drawableArr is empty, create a new Drawable object inside switch statement! +++++++++++++++++ASSERT @ DrawDoc.cpp Line 72+++++++++++++++++++++++++++++
-	// OR
-	// Do it like in microsoft Paint: when it is clicked on the ribbon and dragged into the canvas, nothing happens and cursor remains arrow.
 
 	CClientDC dc(this);  // Calls GetDC at construction time and ReleaseDC at destruction time
 
@@ -383,4 +383,6 @@ void CDrawView::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	// Releases the mouse capture from OnLButtonDown.
 	ReleaseCapture();
+
+	isDrawing = FALSE;  // Mark that drawing has ended
 }

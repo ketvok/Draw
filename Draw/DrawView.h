@@ -17,6 +17,9 @@
 
 class CDrawView : public CScrollView
 {
+// Private data members
+	BOOL isDrawing; // Flag to indicate if we are currently drawing
+
 protected: // create from serialization only
 	CDrawView() noexcept;
 	DECLARE_DYNCREATE(CDrawView)

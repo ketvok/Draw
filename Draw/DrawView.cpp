@@ -55,7 +55,7 @@ END_MESSAGE_MAP()
 
 // CDrawView construction/destruction
 
-CDrawView::CDrawView() noexcept : isDrawing{FALSE}
+CDrawView::CDrawView() noexcept : isDrawing{ FALSE }
 {
 	// TODO: add construction code here
 }
@@ -81,17 +81,159 @@ void CDrawView::OnDraw(CDC* pDC)
     if (!pDoc)
         return;
 
-	pDoc->DrawAll(pDC);
+	////////////////
+	// NOT PRINTING
+	if (!pDC->IsPrinting())
+	{	
+		// Solve the problem of image not being drawn correctly while scrolling.
+		// (artifacting, white background, etc.)
+		CRect clipBoxRect; pDC->GetClipBox(&clipBoxRect);
+		pDC->FillSolidRect(clipBoxRect, RGB(220, 230, 240));  // Same color as area around canvas
+
+		// Draw area around canvas
+		CRect clientRect; GetClientRect(&clientRect);
+		pDC->FillSolidRect(clientRect, RGB(220, 230, 240));
+
+		// Draw canvas shadow
+		CRect canvasShadowRect(paddingHorizontal * 2.5,
+			                   paddingVertical * 2.5,
+			                   paddingHorizontal * 2.5 + canvasSize.cx,
+			                   paddingVertical * 2.5 + canvasSize.cy);
+		pDC->FillSolidRect(canvasShadowRect, RGB(210, 220, 230));
+
+		// Draw canvas
+		canvasRect.left = paddingHorizontal;
+		canvasRect.top = paddingVertical;
+		canvasRect.right = paddingHorizontal + canvasSize.cx;
+		canvasRect.bottom = paddingVertical + canvasSize.cy;
+		pDC->FillSolidRect(canvasRect, RGB(255, 255, 255));
+
+		// Draw canvas resize handle
+		CRect resizeHandleRect(paddingHorizontal + canvasSize.cx,
+			                   paddingVertical + canvasSize.cy,
+			                   paddingHorizontal * 2 + canvasSize.cx,
+			                   paddingVertical * 2 + canvasSize.cy);
+		pDC->FillSolidRect(resizeHandleRect, RGB(255, 255, 255));
+
+		// Draw a frame for canvas resize handle
+		CPen handlePen(PS_SOLID, 1, RGB(64, 64, 64));
+		CPen* pOldPen = pDC->SelectObject(&handlePen);
+
+		pDC->Rectangle(resizeHandleRect.left,
+			           resizeHandleRect.top,
+			           resizeHandleRect.right,
+			           resizeHandleRect.bottom);
+		pDC->SelectObject(pOldPen);
+
+
+		//*****************************************************************************************
+		// CANVAS CLIPPING REGION
+		// 
+		// For some reason this does not work if it's in OnPrepareDC instead of here.
+		// Set up clipping region to the canvas
+		CRect clipRect = canvasRect;
+		CRgn clipRgn; clipRgn.CreateRectRgnIndirect(&clipRect);
+		
+		// Offset the clipping region by the scroll position.
+		CPoint scrollPos = GetScrollPosition();
+		clipRgn.OffsetRgn(-scrollPos.x, -scrollPos.y);
+		CRect clipRgnRect;
+		GetRgnBox(clipRgn, &clipRgnRect);
+		
+		// Select clipping region into DC
+		int savedDC = pDC->SaveDC();																			
+		pDC->SelectClipRgn(&clipRgn);
+		//*****************************************************************************************
+
+		pDoc->DrawAll(pDC);
+
+
+		// Cleanup
+		pDC->RestoreDC(savedDC);
+	}
+
+	////////////
+	// PRINTING
+	else  // If printing, draw the document content without any background
+	{
+		// Get the printable area dimensions
+		int printWidth = pDC->GetDeviceCaps(HORZRES);  // e.g. 2480  // [ A4 width(8.27 in) * 300 dpi ]
+		int printHeight = pDC->GetDeviceCaps(VERTRES);  // e.g. 3508  // [ A4 height(11.7 in) * 300 dpi ]
+
+		// Calculate the scaling factor to fit the canvas on the page
+		// while maintaining the aspect ratio
+
+		// E.g. If the paper has n times larger horizontal resolution than the canvas, and >n
+		// times larger vertical resolution, then the viewport is set to be the same horizontal
+		// size, and vertical size n times larger than the canvas. That way the canvas is drawn
+		// over the entire width of the paper and in the correct aspect ratio.
+
+		double scaleX = static_cast<double>(printWidth) / canvasSize.cx;  // e.g 4.1333 // [ 2480 / 600 ]
+		double scaleY = static_cast<double>(printHeight) / canvasSize.cy;  // e.g 8.769 // [ 3508 / 400 ]
+		double scaleFactor = min(scaleX, scaleY);
+
+		// Calculate the new viewport extent that preserves aspect ratio
+		int viewportWidth = static_cast<int>(canvasSize.cx * scaleFactor);
+		int viewportHeight = static_cast<int>(canvasSize.cy * scaleFactor);
+
+		int savedDC;
+
+		/////////////////
+		// PRINT PREVIEW
+		if (pDC->IsKindOf(RUNTIME_CLASS(CPreviewDC)))
+		{
+		//*****************************************************************************************
+		// PRINT PREVIEW CLIPPING REGION
+		// 
+		// Copied from: https://www.codeproject.com/Articles/5377/Using-CRgn-with-print-preview
+		// For some reason this works better if it's here instead of OnPrepareDC.
+		// If it's there then the clipping region is applied only after window resize, and if it's
+		// here then it is applied immediately after the print preview window is opened.
+		CRect clipRect(0, 0, viewportWidth, viewportHeight);
+		CPreviewDC* pPrevDC = static_cast<CPreviewDC*>(pDC);
+
+		// Preview uses 2 different DC's: printer DC and output DC
+		// Translate the clip region in use from the printer context to the output context
+		pPrevDC->PrinterDPtoScreenDP(&clipRect.TopLeft());
+		pPrevDC->PrinterDPtoScreenDP(&clipRect.BottomRight());
+		// Now offset the result by the viewport origin of
+		// the print preview window...
+		CPoint ptOrg; ::GetViewportOrgEx(pDC->m_hDC, &ptOrg);
+		clipRect.OffsetRect(ptOrg.x, ptOrg.y);  // Offset the clipping rect. by the viewport origin
+		
+		CRgn rgn;
+		VERIFY(rgn.CreateRectRgnIndirect(clipRect));
+		savedDC = pDC->SaveDC();  // Save the current state of the device context
+		pDC->SelectClipRgn(&rgn);  // Set the clipping region to the calculated rectangle
+		//*****************************************************************************************
+		}
+		else
+		{
+			//*************************************************************************************
+			// PRINTING CLIPPING REGION
+			// 
+			// This works the same weather it's in OnPrepareDC or here, but I prefer it here for
+			// consistency of keeping all clipping region code in one place.
+			CRect clipRect(0, 0, viewportWidth, viewportHeight);
+			CRgn clipRgn; VERIFY(clipRgn.CreateRectRgnIndirect(&clipRect));
+			savedDC = pDC->SaveDC();
+			pDC->SelectClipRgn(&clipRgn);
+			//*************************************************************************************
+		}
+
+		pDoc->DrawAll(pDC);
+
+		pDC->RestoreDC(savedDC);
+	}
 }
 
 void CDrawView::OnInitialUpdate()
 {
 	CScrollView::OnInitialUpdate();
 
-	CSize sizeTotal;
-	// TODO: calculate the total size of this view
-	sizeTotal.cx = sizeTotal.cy = 100;
-	SetScrollSizes(MM_TEXT, sizeTotal);
+	//CSize sizeTotal;
+	//// TODO: calculate the total size of this view
+	//sizeTotal.cx = sizeTotal.cy = 100;
 }
 
 
@@ -107,8 +249,14 @@ void CDrawView::OnFilePrintPreview()
 
 BOOL CDrawView::OnPreparePrinting(CPrintInfo* pInfo)
 {
-	// default preparation
+	// Framework calls OnPreparePrinting passing a pointer to CPrintInfo structure. 
+
+	// default preparation								
 	return DoPreparePrinting(pInfo);
+
+	// DoPreparePrinting displays the Print dialog box and creates a printer device context.
+	// When it returns, the CPrintInfo structure contains the values specified by the user.
+
 }
 
 void CDrawView::OnBeginPrinting(CDC* /*pDC*/, CPrintInfo* /*pInfo*/)
@@ -203,11 +351,25 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 	// mouse messages. This is necessary to receive mouse-move messages
 	// past the edge of the window.
 	SetCapture();
-
+	
 	isDrawing = TRUE;  // Mark that drawing has started
 
 	CDrawDoc* pDoc = GetDocument();
 	CClientDC dc(this);  // Calls GetDC at construction time and ReleaseDC at destruction time
+
+	OnPrepareDC(&dc);
+	dc.DPtoLP(&point);  // Convert the point to logical coordinates
+
+	CPoint scrollPos = GetScrollPosition();  // Get the current scroll position
+	CRect clipRect(paddingHorizontal - scrollPos.x,
+		           paddingVertical - scrollPos.y,
+		           paddingHorizontal + canvasSize.cx - scrollPos.x,
+		           paddingVertical + canvasSize.cy - scrollPos.y);
+	//dc.DPtoLP(&clipRect);  // DO NOT DO THIS.
+	CRgn clipRgn;
+	clipRgn.CreateRectRgnIndirect(&clipRect);
+	int savedDC = dc.SaveDC();  // Save the current state of the device context
+	dc.SelectClipRgn(&clipRgn);
 
 	switch (pDoc->GetDrawingTool())
 	{
@@ -265,6 +427,7 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 
 		// Cleanup
 		dc.SelectObject(pOldPen);
+		dc.RestoreDC(savedDC);  // Restore the device context to its previous state
 
 		break;
 	}
@@ -283,7 +446,11 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 		CBrush* pOldBrush = (CBrush*)dc.SelectObject(&cbrush);
 
 		// Draw a rectangle at the current point with the size of the eraser
-		Rectangle(dc.m_hDC, point.x - pDoc->GetSizeEraser() / 2, point.y - pDoc->GetSizeEraser() / 2, point.x + pDoc->GetSizeEraser() / 2, point.y + pDoc->GetSizeEraser() / 2);
+		Rectangle(dc.m_hDC,
+			      point.x - pDoc->GetSizeEraser() / 2,
+			      point.y - pDoc->GetSizeEraser() / 2,
+			      point.x + pDoc->GetSizeEraser() / 2,
+			      point.y + pDoc->GetSizeEraser() / 2);
 
 		// Cleanup
 		dc.SelectObject(pOldPen);
@@ -291,7 +458,7 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 
 		break;
 	}
-	}
+	}  // End switch
 }
 
 void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
@@ -303,8 +470,22 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 
 	CClientDC dc(this);  // Calls GetDC at construction time and ReleaseDC at destruction time
 
-	if (GetKeyState(VK_LBUTTON) & 0x8000)  // If the high order bit of return value is set, the left mouse button is down
-	{
+	OnPrepareDC(&dc);
+	dc.DPtoLP(&point);  // Convert the point to logical coordinates
+
+	CPoint scrollPos = GetScrollPosition();  // Get the current scroll position
+	CRect clipRect(paddingHorizontal - scrollPos.x,
+		           paddingVertical - scrollPos.y,
+		           paddingHorizontal + canvasSize.cx - scrollPos.x,
+		           paddingVertical + canvasSize.cy - scrollPos.y);
+	//dc.DPtLP(&clipRect);  // DO NOT DO THIS.
+	CRgn clipRgn;
+	clipRgn.CreateRectRgnIndirect(&clipRect);
+	int savedDC = dc.SaveDC();
+	dc.SelectClipRgn(&clipRgn);
+
+	if (GetKeyState(VK_LBUTTON) & 0x8000)  // If the high order bit of return value is set,
+	{                                      //  the left mouse button is down.
 		switch (pDoc->GetDrawingTool())
 		{
 		case pen:
@@ -340,15 +521,20 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 			CBrush* pOldBrush = (CBrush*)dc.SelectObject(&cbrush);
 
 			// Draw a rectangle at the current point with the size of the eraser
-			Rectangle(dc.m_hDC, point.x - pDoc->GetSizeEraser() / 2, point.y - pDoc->GetSizeEraser() / 2, point.x + pDoc->GetSizeEraser() / 2, point.y + pDoc->GetSizeEraser() / 2);
+			Rectangle(dc.m_hDC,
+				      point.x - pDoc->GetSizeEraser() / 2,
+				      point.y - pDoc->GetSizeEraser() / 2,
+				      point.x + pDoc->GetSizeEraser() / 2,
+				      point.y + pDoc->GetSizeEraser() / 2);
 
 			// Cleanup
 			dc.SelectObject(pOldPen);
 
 			break;
 		}
-		}
+		}  // End switch
 	}
+	dc.RestoreDC(savedDC);  // Restore the device context to its previous state
 }
 
 BOOL CDrawView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
@@ -375,7 +561,7 @@ BOOL CDrawView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 		SetCursor(curEraser);
 		break;
 	}
-	}
+	}  // End switch
 
 	return TRUE;
 }
@@ -384,5 +570,78 @@ void CDrawView::OnLButtonUp(UINT nFlags, CPoint point)
 	// Releases the mouse capture from OnLButtonDown.
 	ReleaseCapture();
 
-	isDrawing = FALSE;  // Mark that drawing has ended
+	isDrawing = FALSE;
+}
+
+void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
+{
+	// Called by the framework before the OnDraw member function is called for screen display and
+	// before the OnPrint member function is called for each page during printing or print preview.
+
+	CScrollView::OnPrepareDC(pDC, pInfo);
+	pDC->SetMapMode(MM_ISOTROPIC);
+
+	CPoint scrollPos = GetScrollPosition();
+
+	// PRINTING & PRINT PREVIEW
+	if (pDC->IsPrinting())
+	{
+		// Set window to match the canvas content area (logical coordinates)
+		pDC->SetWindowOrg(paddingHorizontal, paddingVertical);  // E.g. (6, 6)  // [ 96(dpi) * 1/16 ]
+		pDC->SetWindowExt(canvasSize.cx, canvasSize.cy);  // E.g. (640, 480)  // [ hardcoded ]
+
+		// Get the device capabilities for the printable area
+		int printWidth = pDC->GetDeviceCaps(HORZRES);  // Printable width in device units // E.g. 2480  // [ A4 width(8.27 in) * 300 dpi ]
+		int printHeight = pDC->GetDeviceCaps(VERTRES); // Printable height in device units // E.g. 3508  // [ A4 height(11.7 in) * 300 dpi ]
+
+		// Calculate the scaling factor to fit the canvas on the page
+		// while maintaining the aspect ratio
+		double scaleX = static_cast<double>(printWidth) / canvasSize.cx;  // E.g. 4.1333 // [ 2480 / 600 ]
+		double scaleY = static_cast<double>(printHeight) / canvasSize.cy;  // E.g. 8.769 // [ 3508 / 400 ]
+		double scaleFactor = min(scaleX, scaleY);
+
+		// Calculate the new viewport extent that preserves aspect ratio
+		int viewportWidth = static_cast<int>(canvasSize.cx * scaleFactor);
+		int viewportHeight = static_cast<int>(canvasSize.cy * scaleFactor);
+
+		pDC->SetViewportOrg(0, 0);
+		pDC->SetViewportExt(viewportWidth, viewportHeight);  // Set the viewport extent to the calculated size
+	}
+
+	// NOT PRINTING
+	else
+	{
+		pDC->SetWindowOrg(paddingHorizontal + scrollPos.x, paddingVertical + scrollPos.y);
+		pDC->SetWindowExt(canvasSize.cx, canvasSize.cy);
+
+		pDC->SetViewportOrg(paddingHorizontal, paddingVertical);
+		pDC->SetViewportExt(canvasSize.cx, canvasSize.cy);
+	}
+}
+
+void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM /*lHint*/, CObject* /*pHint*/)
+{
+	// Get pixels per inch for horizontal and vertical directions of the device (screen)
+	int xLogPixelsPerInch = GetDeviceCaps(GetDC()->m_hDC, LOGPIXELSX);
+	int yLogPixelsPerInch = GetDeviceCaps(GetDC()->m_hDC, LOGPIXELSY);
+
+	// Set the padding for the canvas based on the device's pixel density
+	paddingHorizontal = xLogPixelsPerInch / 16;
+	paddingVertical = yLogPixelsPerInch / 16;
+
+	// Get the width of the vertical and height of the horizontal scroll bar
+	int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
+	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
+
+	// Set the size of the canvas based on the client area size, making sure it does not get
+	// obstructed by the scroll bars
+	CRect clientRect; GetClientRect(&clientRect);
+	canvasSize.cx = clientRect.Width() - paddingHorizontal * 2 - vScrollBarWidth;
+	canvasSize.cy = clientRect.Height() - paddingVertical * 2 - hScrollBarHeight;
+
+	// Set the scrollable area size accounting for padding and scroll bar sizes
+	CSize scrollSize;
+	scrollSize.cx = canvasSize.cx + paddingHorizontal * 2 + vScrollBarWidth;  // Width of the scrollable area
+	scrollSize.cy = canvasSize.cy + paddingVertical * 2 + hScrollBarHeight;  // Height of the scrollable area
+	SetScrollSizes(MM_TEXT, scrollSize);
 }

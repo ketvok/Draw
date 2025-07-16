@@ -19,6 +19,11 @@ class CDrawView : public CScrollView
 {
 // Private data members
 	BOOL isDrawing; // Flag to indicate if we are currently drawing
+	CSize canvasSize;
+	CRect canvasRect;
+	CRect resizeHandleRect;
+	int paddingHorizontal;
+	int paddingVertical;
 
 protected: // create from serialization only
 	CDrawView() noexcept;
@@ -68,6 +73,8 @@ public:
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	virtual void OnPrepareDC(CDC* pDC, CPrintInfo* pInfo = NULL);
+	virtual void OnUpdate(CView* /*pSender*/, LPARAM /*lHint*/, CObject* /*pHint*/);
 };
 
 #ifndef _DEBUG  // debug version in DrawView.cpp

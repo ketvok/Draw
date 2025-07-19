@@ -51,6 +51,7 @@ BEGIN_MESSAGE_MAP(CDrawView, CScrollView)
 	ON_WM_MOUSEMOVE()
 	ON_WM_SETCURSOR()
 	ON_WM_LBUTTONUP()
+	ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
 
 // CDrawView construction/destruction
@@ -72,7 +73,10 @@ BOOL CDrawView::PreCreateWindow(CREATESTRUCT& cs)
 	return CScrollView::PreCreateWindow(cs);
 }
 
-// CDrawView drawing
+
+////////////////////////////////////////////////////////////////////////
+//                        CDrawView drawing                           //
+////////////////////////////////////////////////////////////////////////
 
 void CDrawView::OnDraw(CDC* pDC)
 {
@@ -81,75 +85,19 @@ void CDrawView::OnDraw(CDC* pDC)
     if (!pDoc)
         return;
 
+	CRect clientRect; GetClientRect(&clientRect);  // Get the client area rectangle
+
 	////////////////
 	// NOT PRINTING
 	if (!pDC->IsPrinting())
 	{	
-		// Solve the problem of image not being drawn correctly while scrolling.
-		// (artifacting, white background, etc.)
-		CRect clipBoxRect; pDC->GetClipBox(&clipBoxRect);
-		pDC->FillSolidRect(clipBoxRect, RGB(220, 230, 240));  // Same color as area around canvas
-
-		// Draw area around canvas
-		CRect clientRect; GetClientRect(&clientRect);
-		pDC->FillSolidRect(clientRect, RGB(220, 230, 240));
-
-		// Draw canvas shadow
-		CRect canvasShadowRect(paddingHorizontal * 2.5,
-			                   paddingVertical * 2.5,
-			                   paddingHorizontal * 2.5 + canvasSize.cx,
-			                   paddingVertical * 2.5 + canvasSize.cy);
-		pDC->FillSolidRect(canvasShadowRect, RGB(210, 220, 230));
-
-		// Draw canvas
-		canvasRect.left = paddingHorizontal;
-		canvasRect.top = paddingVertical;
-		canvasRect.right = paddingHorizontal + canvasSize.cx;
-		canvasRect.bottom = paddingVertical + canvasSize.cy;
-		pDC->FillSolidRect(canvasRect, RGB(255, 255, 255));
-
-		// Draw canvas resize handle
-		CRect resizeHandleRect(paddingHorizontal + canvasSize.cx,
-			                   paddingVertical + canvasSize.cy,
-			                   paddingHorizontal * 2 + canvasSize.cx,
-			                   paddingVertical * 2 + canvasSize.cy);
-		pDC->FillSolidRect(resizeHandleRect, RGB(255, 255, 255));
-
-		// Draw a frame for canvas resize handle
-		CPen handlePen(PS_SOLID, 1, RGB(64, 64, 64));
-		CPen* pOldPen = pDC->SelectObject(&handlePen);
-
-		pDC->Rectangle(resizeHandleRect.left,
-			           resizeHandleRect.top,
-			           resizeHandleRect.right,
-			           resizeHandleRect.bottom);
-		pDC->SelectObject(pOldPen);
-
-
-		//*****************************************************************************************
-		// CANVAS CLIPPING REGION
-		// 
-		// For some reason this does not work if it's in OnPrepareDC instead of here.
-		// Set up clipping region to the canvas
-		CRect clipRect = canvasRect;
-		CRgn clipRgn; clipRgn.CreateRectRgnIndirect(&clipRect);
-		
-		// Offset the clipping region by the scroll position.
-		CPoint scrollPos = GetScrollPosition();
-		clipRgn.OffsetRgn(-scrollPos.x, -scrollPos.y);
-		CRect clipRgnRect;
-		GetRgnBox(clipRgn, &clipRgnRect);
-		
-		// Select clipping region into DC
-		int savedDC = pDC->SaveDC();																			
-		pDC->SelectClipRgn(&clipRgn);
-		//*****************************************************************************************
-
-		pDoc->DrawAll(pDC);
-
-
-		// Cleanup
-		pDC->RestoreDC(savedDC);
+		if (memDC.m_hDC != NULL)
+		{
+			CPoint scrollPos = GetScrollPosition();  // Get the current scroll position
+			clientRect.OffsetRect(scrollPos);  // Offset the client rectangle by the scroll position
+			VERIFY(pDC->BitBlt(0, 0, clientRect.Width(), clientRect.Height(),
+				&memDC, scrollPos.x, scrollPos.y, SRCCOPY));  // Copy the memory DC to the device context
+		}
 	}
 
 	////////////
@@ -221,7 +169,9 @@ void CDrawView::OnDraw(CDC* pDC)
 			//*************************************************************************************
 		}
 
-		pDoc->DrawAll(pDC);
+		// Copy the memory DC to the device context
+		pDC->BitBlt(0, 0, viewportWidth, viewportHeight,
+			&memDC, 0, 0, SRCCOPY);
 
 		pDC->RestoreDC(savedDC);
 	}
@@ -237,8 +187,9 @@ void CDrawView::OnInitialUpdate()
 }
 
 
-// CDrawView printing
-
+////////////////////////////////////////////////////////////////////////
+//                        CDrawView printing                          //
+////////////////////////////////////////////////////////////////////////
 
 void CDrawView::OnFilePrintPreview()
 {
@@ -283,7 +234,9 @@ void CDrawView::OnContextMenu(CWnd* /* pWnd */, CPoint point)
 }
 
 
-// CDrawView diagnostics
+////////////////////////////////////////////////////////////////////////
+//                       CDrawView diagnostics                        //
+////////////////////////////////////////////////////////////////////////
 
 #ifdef _DEBUG
 void CDrawView::AssertValid() const
@@ -304,7 +257,9 @@ CDrawDoc* CDrawView::GetDocument() const // non-debug version is inline
 #endif //_DEBUG
 
 
-// CDrawView message handlers
+////////////////////////////////////////////////////////////////////////
+//                   CDrawView message handlers                       //
+////////////////////////////////////////////////////////////////////////
 
 void CDrawView::OnForecolor()
 {
@@ -357,19 +312,8 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 	CDrawDoc* pDoc = GetDocument();
 	CClientDC dc(this);  // Calls GetDC at construction time and ReleaseDC at destruction time
 
-	OnPrepareDC(&dc);
-	dc.DPtoLP(&point);  // Convert the point to logical coordinates
-
-	CPoint scrollPos = GetScrollPosition();  // Get the current scroll position
-	CRect clipRect(paddingHorizontal - scrollPos.x,
-		           paddingVertical - scrollPos.y,
-		           paddingHorizontal + canvasSize.cx - scrollPos.x,
-		           paddingVertical + canvasSize.cy - scrollPos.y);
-	//dc.DPtoLP(&clipRect);  // DO NOT DO THIS.
-	CRgn clipRgn;
-	clipRgn.CreateRectRgnIndirect(&clipRect);
-	int savedDC = dc.SaveDC();  // Save the current state of the device context
-	dc.SelectClipRgn(&clipRgn);
+	CPoint scrollPos = GetScrollPosition();
+	point.Offset(scrollPos.x, scrollPos.y);  // Offset the point by the scroll position
 
 	switch (pDoc->GetDrawingTool())
 	{
@@ -387,47 +331,46 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 
 		// Select a pen with the current size and color
 		CPen cpen(PS_SOLID, pDoc->GetSizePen(), pDoc->foreColor);
-		CPen* pOldPen = (CPen*)dc.SelectObject(&cpen);
+		CPen* pOldPen = (CPen*)memDC.SelectObject(&cpen);
 
 		if (pDoc->GetSizePen() == 1)
 		{
-			dc.MoveTo(point.x, point.y);
-			dc.SetPixel(point.x, point.y, pDoc->foreColor);
+			memDC.MoveTo(point.x, point.y);
+			memDC.SetPixel(point.x, point.y, pDoc->foreColor);
 		}
 		else if (pDoc->GetSizePen() == 2)  // If pen size is 2, draw a 2 x 2 square
 		{
-			dc.MoveTo(point.x, point.y);
-			dc.SetPixel(point.x, point.y, pDoc->foreColor);
-			dc.SetPixel(point.x - 1, point.y, pDoc->foreColor);
-			dc.SetPixel(point.x, point.y - 1, pDoc->foreColor);
-			dc.SetPixel(point.x - 1, point.y - 1, pDoc->foreColor);
+			memDC.MoveTo(point.x, point.y);
+			memDC.SetPixel(point.x, point.y, pDoc->foreColor);
+			memDC.SetPixel(point.x - 1, point.y, pDoc->foreColor);
+			memDC.SetPixel(point.x, point.y - 1, pDoc->foreColor);
+			memDC.SetPixel(point.x - 1, point.y - 1, pDoc->foreColor);
 		}
 		else if (pDoc->GetSizePen() == 4)  // If pen size is 4, draw a 2 pixel wide cross
 		{
-			dc.MoveTo(point.x, point.y);
-			dc.SetPixel(point.x, point.y, pDoc->foreColor);
-			dc.SetPixel(point.x, point.y - 1, pDoc->foreColor);
-			dc.SetPixel(point.x, point.y - 2, pDoc->foreColor);
-			dc.SetPixel(point.x, point.y + 1, pDoc->foreColor);
-			dc.SetPixel(point.x - 1, point.y, pDoc->foreColor);
-			dc.SetPixel(point.x - 1, point.y - 1, pDoc->foreColor);
-			dc.SetPixel(point.x - 1, point.y - 2, pDoc->foreColor);
-			dc.SetPixel(point.x - 1, point.y + 1, pDoc->foreColor);
-			dc.SetPixel(point.x - 2, point.y, pDoc->foreColor);
-			dc.SetPixel(point.x - 2, point.y - 1, pDoc->foreColor);
-			dc.SetPixel(point.x + 1, point.y, pDoc->foreColor);
-			dc.SetPixel(point.x + 1, point.y - 1, pDoc->foreColor);
+			memDC.MoveTo(point.x, point.y);
+			memDC.SetPixel(point.x, point.y, pDoc->foreColor);
+			memDC.SetPixel(point.x, point.y - 1, pDoc->foreColor);
+			memDC.SetPixel(point.x, point.y - 2, pDoc->foreColor);
+			memDC.SetPixel(point.x, point.y + 1, pDoc->foreColor);
+			memDC.SetPixel(point.x - 1, point.y, pDoc->foreColor);
+			memDC.SetPixel(point.x - 1, point.y - 1, pDoc->foreColor);
+			memDC.SetPixel(point.x - 1, point.y - 2, pDoc->foreColor);
+			memDC.SetPixel(point.x - 1, point.y + 1, pDoc->foreColor);
+			memDC.SetPixel(point.x - 2, point.y, pDoc->foreColor);
+			memDC.SetPixel(point.x - 2, point.y - 1, pDoc->foreColor);
+			memDC.SetPixel(point.x + 1, point.y, pDoc->foreColor);
+			memDC.SetPixel(point.x + 1, point.y - 1, pDoc->foreColor);
 		}
 		else  // If pen size is > 4, use MoveTo/LineTo for drawing a dot at first point
 		{
-			dc.MoveTo(point.x, point.y);
-			dc.SetDCPenColor(pDoc->foreColor);
-			dc.LineTo(point.x, point.y);
+			memDC.MoveTo(point.x, point.y);
+			memDC.SetDCPenColor(pDoc->foreColor);
+			memDC.LineTo(point.x, point.y);
 		}
 
 		// Cleanup
-		dc.SelectObject(pOldPen);
-		dc.RestoreDC(savedDC);  // Restore the device context to its previous state
+		memDC.SelectObject(pOldPen);
 
 		break;
 	}
@@ -441,24 +384,25 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 
 		// Select a pen and brush with the current size and color
 		CPen cpen(PS_SOLID, 1, pDoc->backColor);
-		CPen* pOldPen = (CPen*)dc.SelectObject(&cpen);
+		CPen* pOldPen = (CPen*)memDC.SelectObject(&cpen);
 		CBrush cbrush(pDoc->backColor);
-		CBrush* pOldBrush = (CBrush*)dc.SelectObject(&cbrush);
+		CBrush* pOldBrush = (CBrush*)memDC.SelectObject(&cbrush);
 
 		// Draw a rectangle at the current point with the size of the eraser
-		Rectangle(dc.m_hDC,
+		Rectangle(memDC.m_hDC,
 			      point.x - pDoc->GetSizeEraser() / 2,
 			      point.y - pDoc->GetSizeEraser() / 2,
 			      point.x + pDoc->GetSizeEraser() / 2,
 			      point.y + pDoc->GetSizeEraser() / 2);
 
 		// Cleanup
-		dc.SelectObject(pOldPen);
-		dc.SelectObject(pOldBrush);
+		memDC.SelectObject(pOldPen);
+		memDC.SelectObject(pOldBrush);
 
 		break;
 	}
 	}  // End switch
+	Invalidate();
 }
 
 void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
@@ -470,19 +414,8 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 
 	CClientDC dc(this);  // Calls GetDC at construction time and ReleaseDC at destruction time
 
-	OnPrepareDC(&dc);
-	dc.DPtoLP(&point);  // Convert the point to logical coordinates
-
-	CPoint scrollPos = GetScrollPosition();  // Get the current scroll position
-	CRect clipRect(paddingHorizontal - scrollPos.x,
-		           paddingVertical - scrollPos.y,
-		           paddingHorizontal + canvasSize.cx - scrollPos.x,
-		           paddingVertical + canvasSize.cy - scrollPos.y);
-	//dc.DPtLP(&clipRect);  // DO NOT DO THIS.
-	CRgn clipRgn;
-	clipRgn.CreateRectRgnIndirect(&clipRect);
-	int savedDC = dc.SaveDC();
-	dc.SelectClipRgn(&clipRgn);
+	CPoint scrollPos = GetScrollPosition();
+	point.Offset(scrollPos.x, scrollPos.y);  // Offset the point by the scroll position
 
 	if (GetKeyState(VK_LBUTTON) & 0x8000)  // If the high order bit of return value is set,
 	{                                      //  the left mouse button is down.
@@ -495,17 +428,17 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 
 			// Select a pen with the current size and color
 			CPen cpen(PS_SOLID, pDoc->GetSizePen(), pDoc->foreColor);
-			CPen* pOldPen = (CPen*)dc.SelectObject(&cpen);
+			CPen* pOldPen = (CPen*)memDC.SelectObject(&cpen);
 			
 			// Draw a line from previous point to the current point
-			dc.MoveTo(pDoc->GetPrevPoint());
-			dc.LineTo(point);
+			memDC.MoveTo(pDoc->GetPrevPoint());
+			memDC.LineTo(point);
 			
 			// Set the current point as previous
 			pDoc->SetPrevPoint(point);
 
 			// Cleanup
-			dc.SelectObject(pOldPen);
+			memDC.SelectObject(pOldPen);
 			
 			break;
 		}
@@ -516,25 +449,25 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 
 			// Select a pen and brush with the background color
 			CPen cpen(PS_SOLID, 1, pDoc->backColor);
-			CPen* pOldPen = (CPen*)dc.SelectObject(&cpen);
+			CPen* pOldPen = (CPen*)memDC.SelectObject(&cpen);
 			CBrush cbrush(pDoc->backColor);
-			CBrush* pOldBrush = (CBrush*)dc.SelectObject(&cbrush);
+			CBrush* pOldBrush = (CBrush*)memDC.SelectObject(&cbrush);
 
 			// Draw a rectangle at the current point with the size of the eraser
-			Rectangle(dc.m_hDC,
+			Rectangle(memDC.m_hDC,
 				      point.x - pDoc->GetSizeEraser() / 2,
 				      point.y - pDoc->GetSizeEraser() / 2,
 				      point.x + pDoc->GetSizeEraser() / 2,
 				      point.y + pDoc->GetSizeEraser() / 2);
 
 			// Cleanup
-			dc.SelectObject(pOldPen);
+			memDC.SelectObject(pOldPen);
 
 			break;
 		}
 		}  // End switch
+		Invalidate();
 	}
-	dc.RestoreDC(savedDC);  // Restore the device context to its previous state
 }
 
 BOOL CDrawView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
@@ -575,17 +508,16 @@ void CDrawView::OnLButtonUp(UINT nFlags, CPoint point)
 
 void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 {
-	// Called by the framework before the OnDraw member function is called for screen display and
-	// before the OnPrint member function is called for each page during printing or print preview.
+	// Called by the framework before OnDraw and OnPrint
 
 	CScrollView::OnPrepareDC(pDC, pInfo);
-	pDC->SetMapMode(MM_ISOTROPIC);
 
-	CPoint scrollPos = GetScrollPosition();
+	CRect clientRect; GetClientRect(&clientRect);  // Get the client area rectangle
 
 	// PRINTING & PRINT PREVIEW
 	if (pDC->IsPrinting())
 	{
+		pDC->SetMapMode(MM_ISOTROPIC);
 		// Set window to match the canvas content area (logical coordinates)
 		pDC->SetWindowOrg(paddingHorizontal, paddingVertical);  // E.g. (6, 6)  // [ 96(dpi) * 1/16 ]
 		pDC->SetWindowExt(canvasSize.cx, canvasSize.cy);  // E.g. (640, 480)  // [ hardcoded ]
@@ -611,37 +543,138 @@ void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 	// NOT PRINTING
 	else
 	{
-		pDC->SetWindowOrg(paddingHorizontal + scrollPos.x, paddingVertical + scrollPos.y);
-		pDC->SetWindowExt(canvasSize.cx, canvasSize.cy);
 
-		pDC->SetViewportOrg(paddingHorizontal, paddingVertical);
-		pDC->SetViewportExt(canvasSize.cx, canvasSize.cy);
+		if (isDrawing == TRUE) {
+			CPoint scrollPos = GetScrollPosition();  // Get the current scroll position
+
+			CRect clipRect(paddingHorizontal,
+				paddingVertical,
+				paddingHorizontal + canvasSize.cx,
+				paddingVertical + canvasSize.cy);
+
+			CRgn clipRgn;
+			clipRgn.CreateRectRgnIndirect(&clipRect);
+			memDC.SelectClipRgn(&clipRgn);
+
+			pDC->SetWindowOrg(0, 0);
+			pDC->SetWindowExt(clientRect.Width(), clientRect.Height());
+
+			pDC->SetViewportOrg(0, 0);
+			pDC->SetViewportExt(clientRect.Width(), clientRect.Height());
+		}
+		else  // isDrawing == FALSE
+		{
+			pDC->SetWindowOrg(0, 0);
+			pDC->SetWindowExt(clientRect.Width(), clientRect.Height());
+
+			pDC->SetViewportOrg(0, 0);
+			pDC->SetViewportExt(clientRect.Width(), clientRect.Height());
+		}
+
+
 	}
 }
 
 void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM /*lHint*/, CObject* /*pHint*/)
 {
-	// Get pixels per inch for horizontal and vertical directions of the device (screen)
-	int xLogPixelsPerInch = GetDeviceCaps(GetDC()->m_hDC, LOGPIXELSX);
-	int yLogPixelsPerInch = GetDeviceCaps(GetDC()->m_hDC, LOGPIXELSY);
+	CClientDC dc(this);
+	CRect clientRect; GetClientRect(&clientRect);
+	
+	// Create bitmap
+	VERIFY(drawingBitmap.CreateCompatibleBitmap(&dc, GetDeviceCaps(dc, HORZRES), GetDeviceCaps(dc, VERTRES)));
 
-	// Set the padding for the canvas based on the device's pixel density
+	// If memory DC is not created,
+	if (!memDC.m_hDC)  
+	{	// create it.
+		memDC.CreateCompatibleDC(&dc);
+
+		// Select the bitmap into the memory DC
+		memDC.SelectObject(&drawingBitmap);
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	// CALCULATING CANVAS SIZE AND SCROLLING AREA
+
+	// Calculate the size of padding for the canvas based on the device's pixel density
+	int xLogPixelsPerInch = GetDeviceCaps(memDC, LOGPIXELSX);
+	int yLogPixelsPerInch = GetDeviceCaps(memDC, LOGPIXELSY);
 	paddingHorizontal = xLogPixelsPerInch / 16;
 	paddingVertical = yLogPixelsPerInch / 16;
 
-	// Get the width of the vertical and height of the horizontal scroll bar
+	// Calculate the size of the canvas based on the client area size, making sure it does not get
+	// obstructed by the scroll bars
 	int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
 	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
+	canvasSize.cx = clientRect.Width() - paddingHorizontal * 2 - vScrollBarWidth, 1;
+	canvasSize.cy = clientRect.Height() - paddingVertical * 2 - hScrollBarHeight, 1;
 
-	// Set the size of the canvas based on the client area size, making sure it does not get
-	// obstructed by the scroll bars
-	CRect clientRect; GetClientRect(&clientRect);
-	canvasSize.cx = clientRect.Width() - paddingHorizontal * 2 - vScrollBarWidth;
-	canvasSize.cy = clientRect.Height() - paddingVertical * 2 - hScrollBarHeight;
-
-	// Set the scrollable area size accounting for padding and scroll bar sizes
+	// Calculate the scrollable area accounting for padding and width of scroll bars
 	CSize scrollSize;
-	scrollSize.cx = canvasSize.cx + paddingHorizontal * 2 + vScrollBarWidth;  // Width of the scrollable area
-	scrollSize.cy = canvasSize.cy + paddingVertical * 2 + hScrollBarHeight;  // Height of the scrollable area
+	scrollSize.cx = canvasSize.cx + paddingHorizontal * 2 + vScrollBarWidth;
+	scrollSize.cy = canvasSize.cy + paddingVertical * 2 + hScrollBarHeight;
 	SetScrollSizes(MM_TEXT, scrollSize);
+
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	// DRAWING CANVAS AND BACKGROUND
+	
+	// Solve the problem of image not being drawn correctly while scrolling (artifacting).
+	CRect clipBoxRect; memDC.GetClipBox(&clipBoxRect);
+	memDC.FillSolidRect(clipBoxRect, RGB(220, 230, 240));  // Same color as area around canvas
+
+	// Draw area around canvas
+	GetClientRect(&clientRect);
+	memDC.FillSolidRect(clientRect, RGB(220, 230, 240));
+
+	// Draw canvas shadow
+	CRect canvasShadowRect(paddingHorizontal * 2.5,
+		paddingVertical * 2.5,
+		paddingHorizontal * 2.5 + canvasSize.cx,
+		paddingVertical * 2.5 + canvasSize.cy);
+	memDC.FillSolidRect(canvasShadowRect, RGB(210, 220, 230));
+
+	// Draw canvas
+	canvasRect.left = paddingHorizontal;
+	canvasRect.top = paddingVertical;
+	canvasRect.right = paddingHorizontal + canvasSize.cx;
+	canvasRect.bottom = paddingVertical + canvasSize.cy;
+	memDC.FillSolidRect(canvasRect, RGB(255, 255, 255));
+
+	// Draw canvas resize handle
+	CRect resizeHandleRect(paddingHorizontal + canvasSize.cx,
+		paddingVertical + canvasSize.cy,
+		paddingHorizontal * 2 + canvasSize.cx,
+		paddingVertical * 2 + canvasSize.cy);
+	memDC.FillSolidRect(resizeHandleRect, RGB(255, 255, 255));
+
+	// Draw a frame for canvas resize handle
+	CPen handlePen(PS_SOLID, 1, RGB(64, 64, 64));
+	CPen* pOldPen = memDC.SelectObject(&handlePen);
+
+	memDC.Rectangle(resizeHandleRect.left,
+		resizeHandleRect.top,
+		resizeHandleRect.right,
+		resizeHandleRect.bottom);
+	memDC.SelectObject(pOldPen);
+
+#ifdef DEBUG
+	//memDC.TextOutW(100, 100, _T("OnUpdate"));
+	//CBitmap* pBm = memDC.GetCurrentBitmap();
+	//BITMAP bm;
+	//pBm->GetBitmap(&bm);
+	//CSize bitmapSize(bm.bmWidth, bm.bmHeight);
+	//CPen blackPen(PS_SOLID, 5, RGB(0, 0, 0));
+	//pOldPen = memDC.SelectObject(&blackPen);
+	//CBrush* pOldBrush = (CBrush*)memDC.SelectStockObject(HOLLOW_BRUSH);
+	//memDC.Rectangle(0, 0, bitmapSize.cx, bitmapSize.cy);
+	//memDC.SelectObject(pOldPen);
+	//memDC.SelectObject(pOldBrush);
+#endif // DEBUG
+
+
+}
+
+BOOL CDrawView::OnEraseBkgnd(CDC* pDC)
+{
+	return 1;
 }

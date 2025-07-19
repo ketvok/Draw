@@ -24,6 +24,8 @@ class CDrawView : public CScrollView
 	CRect resizeHandleRect;
 	int paddingHorizontal;
 	int paddingVertical;
+	CBitmap drawingBitmap;
+	CDC memDC;
 
 protected: // create from serialization only
 	CDrawView() noexcept;
@@ -75,6 +77,7 @@ public:
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	virtual void OnPrepareDC(CDC* pDC, CPrintInfo* pInfo = NULL);
 	virtual void OnUpdate(CView* /*pSender*/, LPARAM /*lHint*/, CObject* /*pHint*/);
+	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 };
 
 #ifndef _DEBUG  // debug version in DrawView.cpp

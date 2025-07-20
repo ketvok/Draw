@@ -475,26 +475,39 @@ BOOL CDrawView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 	// Each time the cursor moves and mouse input is not captured, the
 	// system sends a WM_SETCURSOR message to the window in which the
 	// cursor is moving.
-
-	HINSTANCE hInstance = AfxGetInstanceHandle();
 	
-	switch (GetDocument()->GetDrawingTool())
+	if (nHitTest == HTHSCROLL || nHitTest == HTVSCROLL)
 	{
-	case pen:
-	{
-		HCURSOR curPen;
-		curPen = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_PEN_CURSOR));
-		SetCursor(curPen);
-		break;
+		// If the cursor is over a scroll bar, set the default arrow cursor.
+		HCURSOR curArrow;
+		curArrow = AfxGetApp()->LoadStandardCursor(IDC_ARROW);
+		SetCursor(curArrow);
 	}
-	case eraser:
+	else if (nHitTest == HTCLIENT)
+		// Important to check if it's in client area, otherwise it changes
+		// back to custom cursor when in narrow area between scroll bar and
+		// window border.
 	{
-		HCURSOR curEraser;
-		curEraser = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_ERASER_CURSOR));
-		SetCursor(curEraser);
-		break;
+		HINSTANCE hInstance = AfxGetInstanceHandle();
+
+		switch (GetDocument()->GetDrawingTool())
+		{
+		case pen:
+		{
+			HCURSOR curPen;
+			curPen = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_PEN_CURSOR));
+			SetCursor(curPen);
+			break;
+		}
+		case eraser:
+		{
+			HCURSOR curEraser;
+			curEraser = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_ERASER_CURSOR));
+			SetCursor(curEraser);
+			break;
+		}
+		}  // End switch
 	}
-	}  // End switch
 
 	return TRUE;
 }

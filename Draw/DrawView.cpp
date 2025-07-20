@@ -556,35 +556,22 @@ void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 	// NOT PRINTING
 	else
 	{
+		CPoint scrollPos = GetScrollPosition();  // Get the current scroll position
 
-		if (isDrawing == TRUE) {
-			CPoint scrollPos = GetScrollPosition();  // Get the current scroll position
+		CRect clipRect(paddingHorizontal,
+			paddingVertical,
+			paddingHorizontal + canvasSize.cx,
+			paddingVertical + canvasSize.cy);
 
-			CRect clipRect(paddingHorizontal,
-				paddingVertical,
-				paddingHorizontal + canvasSize.cx,
-				paddingVertical + canvasSize.cy);
+		CRgn clipRgn;
+		clipRgn.CreateRectRgnIndirect(&clipRect);
+		memDC.SelectClipRgn(&clipRgn);
 
-			CRgn clipRgn;
-			clipRgn.CreateRectRgnIndirect(&clipRect);
-			memDC.SelectClipRgn(&clipRgn);
+		pDC->SetWindowOrg(0, 0);
+		pDC->SetWindowExt(clientRect.Width(), clientRect.Height());
 
-			pDC->SetWindowOrg(0, 0);
-			pDC->SetWindowExt(clientRect.Width(), clientRect.Height());
-
-			pDC->SetViewportOrg(0, 0);
-			pDC->SetViewportExt(clientRect.Width(), clientRect.Height());
-		}
-		else  // isDrawing == FALSE
-		{
-			pDC->SetWindowOrg(0, 0);
-			pDC->SetWindowExt(clientRect.Width(), clientRect.Height());
-
-			pDC->SetViewportOrg(0, 0);
-			pDC->SetViewportExt(clientRect.Width(), clientRect.Height());
-		}
-
-
+		pDC->SetViewportOrg(0, 0);
+		pDC->SetViewportExt(clientRect.Width(), clientRect.Height());
 	}
 }
 

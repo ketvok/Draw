@@ -18,7 +18,8 @@
 class CDrawView : public CScrollView
 {
 // Private data members
-	BOOL isDrawing; // Flag to indicate if we are currently drawing
+	BOOL isDrawing;
+	BOOL isResizing;
 	CSize canvasSize;
 	CRect canvasRect;
 	CRect resizeHandleRect;

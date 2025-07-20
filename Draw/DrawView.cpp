@@ -304,10 +304,12 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 
 	// Capture the mouse input to this window so that it receives all
 	// mouse messages. This is necessary to receive mouse-move messages
-	// past the edge of the window.
+	// past the edge of the window. Also, during the capture operation
+	// Windows suspends sending WM_SETCURSOR so that the cursor does
+	// not change during operations such as resizing.
 	SetCapture();
 	
-	isDrawing = TRUE;  // Mark that drawing has started
+	if (isResizing == FALSE) isDrawing = TRUE;  // Mark that drawing has started
 
 	CDrawDoc* pDoc = GetDocument();
 	CClientDC dc(this);  // Calls GetDC at construction time and ReleaseDC at destruction time
@@ -488,25 +490,48 @@ BOOL CDrawView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 		// back to custom cursor when in narrow area between scroll bar and
 		// window border.
 	{
-		HINSTANCE hInstance = AfxGetInstanceHandle();
+		// Get current mouse position
+		CPoint point;
+		GetCursorPos(&point);
+		ScreenToClient(&point);
 
-		switch (GetDocument()->GetDrawingTool())
+		// Add scroll offset
+		CPoint scrollPos = GetScrollPosition();
+		CRect adjustedResizeHandleRect = resizeHandleRect;
+		adjustedResizeHandleRect.OffsetRect(-scrollPos.x, -scrollPos.y);
+
+		// Check if cursor is over resize handle
+		if (adjustedResizeHandleRect.PtInRect(point))
 		{
-		case pen:
-		{
-			HCURSOR curPen;
-			curPen = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_PEN_CURSOR));
-			SetCursor(curPen);
-			break;
+			// Set resize cursor
+			HCURSOR curResize;
+			curResize = AfxGetApp()->LoadStandardCursor(IDC_SIZENWSE);
+			SetCursor(curResize);
+			isResizing = TRUE;
 		}
-		case eraser:
+		else
 		{
-			HCURSOR curEraser;
-			curEraser = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_ERASER_CURSOR));
-			SetCursor(curEraser);
-			break;
+			isResizing = FALSE;
+			HINSTANCE hInstance = AfxGetInstanceHandle();
+
+			switch (GetDocument()->GetDrawingTool())
+			{
+			case pen:
+			{
+				HCURSOR curPen;
+				curPen = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_PEN_CURSOR));
+				SetCursor(curPen);
+				break;
+			}
+			case eraser:
+			{
+				HCURSOR curEraser;
+				curEraser = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_ERASER_CURSOR));
+				SetCursor(curEraser);
+				break;
+			}
+			}  // End switch
 		}
-		}  // End switch
 	}
 
 	return TRUE;
@@ -641,10 +666,10 @@ void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM /*lHint*/, CObject* /*pHint*
 	memDC.FillSolidRect(canvasRect, RGB(255, 255, 255));
 
 	// Draw canvas resize handle
-	CRect resizeHandleRect(paddingHorizontal + canvasSize.cx,
-		paddingVertical + canvasSize.cy,
-		paddingHorizontal * 2 + canvasSize.cx,
-		paddingVertical * 2 + canvasSize.cy);
+	resizeHandleRect.left = paddingHorizontal + canvasSize.cx;
+	resizeHandleRect.top = paddingVertical + canvasSize.cy;
+	resizeHandleRect.right = paddingHorizontal * 2 + canvasSize.cx;
+	resizeHandleRect.bottom = paddingVertical * 2 + canvasSize.cy;
 	memDC.FillSolidRect(resizeHandleRect, RGB(255, 255, 255));
 
 	// Draw a frame for canvas resize handle

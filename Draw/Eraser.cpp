@@ -23,3 +23,13 @@ void Eraser::AddPoint(const CPoint& point)
 {
 	points.Add(point);
 }
+
+void Eraser::SetPrevPoint(const CPoint& point)
+{
+	prevPoint = point;
+}
+
+const CPoint& Eraser::GetPrevPoint() const
+{
+	return prevPoint;
+}

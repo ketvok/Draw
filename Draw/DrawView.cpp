@@ -411,6 +411,7 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 
 			pDoc->AddObject(eraser);
 			pDoc->AddPoint(point);
+			pDoc->SetPrevPoint(point);  // Mark added point as previous for future reference
 			strokeInProgress = TRUE;
 
 			// Select a pen and brush with the current size and color
@@ -488,12 +489,33 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 			CBrush cbrush(pDoc->backColor);
 			CBrush* pOldBrush = (CBrush*)memDC.SelectObject(&cbrush);
 
-			// Draw a rectangle at the current point with the size of the eraser
-			Rectangle(memDC.m_hDC,
-				      point.x - pDoc->GetSizeEraser() / 2,
-				      point.y - pDoc->GetSizeEraser() / 2,
-				      point.x + pDoc->GetSizeEraser() / 2,
-				      point.y + pDoc->GetSizeEraser() / 2);
+			// Calculate the points in between the previous point and the current point
+			CPoint prevPoint = pDoc->GetPrevPoint();
+			int dx = point.x - prevPoint.x;     // Difference in x coordinates
+			int dy = point.y - prevPoint.y;     // Difference in y coordinates
+			int steps = max(abs(dx), abs(dy));  // Number of steps needed for the line
+
+			// Draw a "line" from the previous point to the current point
+			for (int i = 1; i <= steps; ++i)
+			{
+				// Calculate the interpolated point based on the step
+				int x = prevPoint.x + dx * i / steps;
+				int y = prevPoint.y + dy * i / steps;
+					
+				// Draw a rectangle at the interpolated point
+				int eraserSize = pDoc->GetSizeEraser();
+				Rectangle(memDC.m_hDC,
+							x - eraserSize / 2,
+							y - eraserSize / 2,
+							x + eraserSize / 2,
+							y + eraserSize / 2);
+
+				// Add the interpolated point to the last Drawable object (Eraser)
+				pDoc->AddPoint(point);
+			}
+
+			// Set the current point as previous
+			pDoc->SetPrevPoint(point);
 
 			// Cleanup
 			memDC.SelectObject(pOldPen);

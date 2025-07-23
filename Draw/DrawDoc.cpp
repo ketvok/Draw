@@ -100,8 +100,17 @@ const POINT& CDrawDoc::GetPrevPoint()
 	switch (selectedDrawingTool)
 	{
 	case pen:
+	{
 		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.GetSize() - 1].get());
 		return penObj->GetPrevPoint();
+		break;
+	}
+	case eraser:
+	{
+		Eraser* eraserObj = dynamic_cast<Eraser*>(drawableArr[drawableArr.GetSize() - 1].get());
+		return eraserObj->GetPrevPoint();
+		break;
+	}
 	}
 }
 
@@ -112,8 +121,15 @@ void CDrawDoc::SetPrevPoint(const CPoint& point)
 	switch (selectedDrawingTool)
 	{
 	case pen:
+	{
 		dynamic_cast<Pen*>(drawableArr[drawableArr.GetSize() - 1].get())->SetPrevPoint(point);
 		break;
+	}
+	case eraser:
+	{
+		dynamic_cast<Eraser*>(drawableArr[drawableArr.GetSize() - 1].get())->SetPrevPoint(point);
+		break;
+	}
 	}
 }
 

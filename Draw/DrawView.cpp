@@ -142,24 +142,14 @@ void CDrawView::OnInitialUpdate()
 	CClientDC dc(this);
 	CRect clientRect; GetClientRect(&clientRect);
 
-	// Create bitmap
-	if (drawingBitmap.m_hObject == NULL)
-	{
-		VERIFY(drawingBitmap.CreateCompatibleBitmap(&dc, GetDeviceCaps(dc, HORZRES), GetDeviceCaps(dc, VERTRES)));
-	}
-
-	// If memory DC is not created,
-	if (!memDC.m_hDC)
-	{	// create it.
-		memDC.CreateCompatibleDC(&dc);
-
-		// Select the bitmap into the memory DC
-		memDC.SelectObject(&drawingBitmap);
-		bitmapInitialized = TRUE;  // Mark that the bitmap is initialized
-	}
+	// Initialize the memory DC and bitmap for drawing
+    VERIFY(drawingBitmap.CreateCompatibleBitmap(&dc, GetDeviceCaps(dc, HORZRES), GetDeviceCaps(dc, VERTRES)));
+	memDC.CreateCompatibleDC(&dc);
+	memDC.SelectObject(&drawingBitmap);
+	bitmapInitialized = TRUE;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
-	// CALCULATING CANVAS SIZE AND SCROLLING AREA
+	// CALCULATE CANVAS SIZE AND SCROLLING AREA
 
 	// Calculate the size of padding for the canvas based on the device's pixel density
 	int xLogPixelsPerInch = GetDeviceCaps(memDC, LOGPIXELSX);
@@ -173,15 +163,18 @@ void CDrawView::OnInitialUpdate()
 	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
 	canvasSize.cx = clientRect.Width() - paddingHorizontal * 2 - vScrollBarWidth;
 	canvasSize.cy = clientRect.Height() - paddingVertical * 2 - hScrollBarHeight;
-	trackRect.SetRect(paddingHorizontal, paddingVertical,
+	
+	// Set the canvas rectangle to the calculated size and position
+	canvasRect.SetRect(paddingHorizontal, paddingVertical,
 		paddingHorizontal + canvasSize.cx, paddingVertical + canvasSize.cy);
+	
+	trackRect = canvasRect;
 
 	// Calculate the scrollable area accounting for padding and width of scroll bars
 	CSize scrollSize;
 	scrollSize.cx = canvasSize.cx + paddingHorizontal * 2 + vScrollBarWidth;
 	scrollSize.cy = canvasSize.cy + paddingVertical * 2 + hScrollBarHeight;
 	SetScrollSizes(MM_TEXT, scrollSize);
-
 
 	CScrollView::OnInitialUpdate();
 }
@@ -310,8 +303,9 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 		
 	CRect adjustedResizeHandleRect = resizeHandleRect;
 	adjustedResizeHandleRect.OffsetRect(-scrollPos.x, -scrollPos.y);  // Adjust the rectangle by the scroll position
-		
-	if (adjustedResizeHandleRect.PtInRect(point))  // If point is inside the resize handle rectangle
+	
+	// Clicked inside the resize handle
+	if (adjustedResizeHandleRect.PtInRect(point))
 	{
 		resizingMode = TRUE;
 		drawingMode = FALSE;
@@ -333,15 +327,15 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 			GetDocument()->UpdateAllViews(NULL, 1, NULL);
 		}
 	}
+	// Clicked inside the canvas
 	else
 	{
 		CPoint scrollPos = GetScrollPosition();
 		point.Offset(scrollPos.x, scrollPos.y);  // Offset the point by the scroll position
 
-		if (!canvasRect.PtInRect(point))  // If point is outside the canvas rectangle
+		if (!canvasRect.PtInRect(point))  // If clicked outside canvas,
 		{
-			// If the point is outside the canvas, do nothing.
-			return;
+			return;  // do nothing.
 		}
 
 		drawingMode = TRUE;  // Mark that drawing has started
@@ -398,7 +392,7 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 				memDC.SetPixel(point.x + 1, point.y, pDoc->foreColor);
 				memDC.SetPixel(point.x + 1, point.y - 1, pDoc->foreColor);
 			}
-			else  // If pen size is > 4, use MoveTo/LineTo for drawing a dot at first point
+			else  // If pen size is > 4, use MoveTo/LineTo for drawing a dot
 			{
 				memDC.MoveTo(point.x, point.y);
 				memDC.SetDCPenColor(pDoc->foreColor);
@@ -451,13 +445,15 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 
 	CDrawDoc* pDoc = GetDocument();
 
-	CClientDC dc(this);  // Calls GetDC at construction time and ReleaseDC at destruction time
+	CClientDC dc(this);
 
 	CPoint scrollPos = GetScrollPosition();
 	point.Offset(scrollPos.x, scrollPos.y);  // Offset the point by the scroll position
 
-	if (GetKeyState(VK_LBUTTON) & 0x8000 && strokeInProgress == TRUE)  // If the high order bit of return value is set,
-	{                                      //  the left mouse button is down.
+	if (GetKeyState(VK_LBUTTON) & 0x8000 && strokeInProgress == TRUE)
+		// If the high order bit of return value is set,
+		//  the left mouse button is down.
+	{
 		switch (pDoc->GetDrawingTool())
 		{
 		case pen:
@@ -604,7 +600,6 @@ void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 			// If not drawing, remove the clipping region that is set to canvas only
 			memDC.SelectClipRgn(NULL);
 
-
 			pDC->SetWindowOrg(0, 0);
 			pDC->SetWindowExt(clientRect.Width(), clientRect.Height());
 
@@ -645,456 +640,156 @@ void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM lHint, CObject* /*pHint*/)
 	CClientDC dc(this);
 	CRect clientRect; GetClientRect(&clientRect);
 
-	if (lHint == 1)
+	int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
+	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
+
+	if (lHint == 1)  // Resize handle was moved
 	{
+		// Get current bitmap and its size
 		BITMAP drawingBitmapInfo;
 		drawingBitmap.GetBitmap(&drawingBitmapInfo);
 		LONG bmWidth = drawingBitmapInfo.bmWidth;
 		LONG bmHeight = drawingBitmapInfo.bmHeight;
 
-		CSize neededBmSize{ trackRect.Width()  + (paddingHorizontal * 2) + GetSystemMetrics(SM_CXHSCROLL),
-						    trackRect.Height() + (paddingVertical * 2)   + GetSystemMetrics(SM_CYVSCROLL) };
+		// Calculate the size of the bitmap needed to hold the new canvas
+		CSize neededBmSize{ trackRect.Width()  + (paddingHorizontal * 2) + vScrollBarWidth,
+						    trackRect.Height() + (paddingVertical * 2)   + hScrollBarHeight };
 
-		// Both width and height of the needed bitmap are larger than the current bitmap size
+		// Save the canvas portion of the current bitmap
+		CBitmap curCanvasBm;
+		VERIFY(curCanvasBm.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
+		CDC tmpDC;
+		tmpDC.CreateCompatibleDC(&dc);
+		CBitmap* pOldCanvasBm = tmpDC.SelectObject(&curCanvasBm);
+		tmpDC.BitBlt(0, 0, canvasSize.cx, canvasSize.cy,
+			&memDC, canvasRect.left, canvasRect.top, SRCCOPY);
+
+		CBitmap newBm;
+
+		// If both width and height of the needed bitmap are larger than the current bitmap size,
 		if (neededBmSize.cx > bmWidth && neededBmSize.cy > bmHeight)
 		{
-			// 1. Save the canvas portion of the current bitmap to a separate bitmap
-			CBitmap curCanvasBm;
-			VERIFY(curCanvasBm.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
-
-			CDC tmpDC;
-			tmpDC.CreateCompatibleDC(&dc);
-			CBitmap* pOldCanvasBm = tmpDC.SelectObject(&curCanvasBm);
-
-			tmpDC.BitBlt(0, 0, canvasSize.cx, canvasSize.cy,
-				&memDC, canvasRect.left, canvasRect.top, SRCCOPY);
-
-			// 2. Create a larger bitmap to accommodate the new canvas size
-			CBitmap largeBm;
-			VERIFY(largeBm.CreateCompatibleBitmap(&dc, neededBmSize.cx, neededBmSize.cy));
-
-			// 3. Select the larger bitmap to the memory DC
-			memDC.SelectObject(&largeBm);
-
-			// Update the canvas size based on the tracker rectangle
-			canvasSize.cx = trackRect.Width();
-			canvasSize.cy = trackRect.Height();
-
-			// Update the canvas rectangle position
-			canvasRect.right = paddingHorizontal + canvasSize.cx;
-			canvasRect.bottom = paddingVertical + canvasSize.cy;
-
-			// Update the resize handle rectangle position
-			resizeHandleRect.left = paddingHorizontal + canvasSize.cx;
-			resizeHandleRect.top = paddingVertical + canvasSize.cy;
-			resizeHandleRect.right = paddingHorizontal * 2 + canvasSize.cx;
-			resizeHandleRect.bottom = paddingVertical * 2 + canvasSize.cy;
-
-			int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
-			int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
-			// Calculate the scrollable area accounting for padding and width of scroll bars
-			CSize scrollSize;
-			scrollSize.cx = canvasSize.cx + paddingHorizontal * 2 + vScrollBarWidth;
-			scrollSize.cy = canvasSize.cy + paddingVertical * 2 + hScrollBarHeight;
-			SetScrollSizes(MM_TEXT, scrollSize);
-
-			//////////////////////////////////////////////////////////////////////////////////////////////////
-			// DRAWING CANVAS AND BACKGROUND
-
-			// Solve the problem of image not being drawn correctly while scrolling (artifacting).
-			CRect clipBoxRect; memDC.GetClipBox(&clipBoxRect);
-			memDC.FillSolidRect(clipBoxRect, RGB(220, 230, 240));  // Same color as area around canvas
-
-			// Draw area around canvas
-			GetClientRect(&clientRect);
-			memDC.FillSolidRect(clientRect, RGB(220, 230, 240));
-
-			// Draw canvas shadow
-			CRect canvasShadowRect(paddingHorizontal * 2,
-				paddingVertical * 2,
-				paddingHorizontal * 2 + canvasSize.cx,
-				paddingVertical * 2 + canvasSize.cy);
-			memDC.FillSolidRect(canvasShadowRect, RGB(210, 220, 230));
-
-			// Draw canvas
-			canvasRect.left = paddingHorizontal;
-			canvasRect.top = paddingVertical;
-			canvasRect.right = paddingHorizontal + canvasSize.cx;
-			canvasRect.bottom = paddingVertical + canvasSize.cy;
-			memDC.FillSolidRect(canvasRect, RGB(255, 255, 255));
-
-			// Draw canvas resize handle
-			resizeHandleRect.left = paddingHorizontal + canvasSize.cx;
-			resizeHandleRect.top = paddingVertical + canvasSize.cy;
-			resizeHandleRect.right = paddingHorizontal * 2 + canvasSize.cx;
-			resizeHandleRect.bottom = paddingVertical * 2 + canvasSize.cy;
-			memDC.FillSolidRect(resizeHandleRect, RGB(255, 255, 255));
-
-			// Draw a frame for canvas resize handle
-			CPen handlePen(PS_SOLID, 1, RGB(64, 64, 64));
-			CPen* pOldPen = memDC.SelectObject(&handlePen);
-
-			memDC.Rectangle(resizeHandleRect.left,
-				resizeHandleRect.top,
-				resizeHandleRect.right,
-				resizeHandleRect.bottom);
-			memDC.SelectObject(pOldPen);
-
-			// Copy the previously saved bitmap portion to the DC with new, larger bitmap
-			memDC.BitBlt(paddingHorizontal, paddingVertical, canvasSize.cx, canvasSize.cy,
-				&tmpDC, 0, 0, SRCCOPY);
-
-			// Call OnDraw to copy the memory DC to the screen DC
-			Invalidate();
+			// create a new bitmap that is both wider and taller.
+			VERIFY(newBm.CreateCompatibleBitmap(&dc, neededBmSize.cx, neededBmSize.cy));
 		}
-		// Only width of the needed bitmap is larger than the current bitmap width
+		// If only the width of the needed bitmap is larger than the current bitmap width,
 		else if (neededBmSize.cx > bmWidth)
 		{
-			// 1. Save the canvas portion of the current bitmap to a separate bitmap
-			CBitmap curCanvasBm;
-			VERIFY(curCanvasBm.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
-
-			CDC tmpDC;
-			tmpDC.CreateCompatibleDC(&dc);
-			CBitmap* pOldCanvasBm = tmpDC.SelectObject(&curCanvasBm);
-
-			tmpDC.BitBlt(0, 0, canvasSize.cx, canvasSize.cy,
-				&memDC, canvasRect.left, canvasRect.top, SRCCOPY);
-
-			// 2. Create a larger bitmap to accommodate the new canvas size
-			CBitmap largeBm;
-			VERIFY(largeBm.CreateCompatibleBitmap(&dc, neededBmSize.cx, bmHeight));
-
-			// 3. Select the larger bitmap to the memory DC
-			memDC.SelectObject(&largeBm);
-
-			// Update the canvas size based on the tracker rectangle
-			canvasSize.cx = trackRect.Width();
-			canvasSize.cy = trackRect.Height();
-
-			// Update the canvas rectangle position
-			canvasRect.right = paddingHorizontal + canvasSize.cx;
-			canvasRect.bottom = paddingVertical + canvasSize.cy;
-
-			// Update the resize handle rectangle position
-			resizeHandleRect.left = paddingHorizontal + canvasSize.cx;
-			resizeHandleRect.top = paddingVertical + canvasSize.cy;
-			resizeHandleRect.right = paddingHorizontal * 2 + canvasSize.cx;
-			resizeHandleRect.bottom = paddingVertical * 2 + canvasSize.cy;
-
-			int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
-			int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
-			// Calculate the scrollable area accounting for padding and width of scroll bars
-			CSize scrollSize;
-			scrollSize.cx = canvasSize.cx + paddingHorizontal * 2 + vScrollBarWidth;
-			scrollSize.cy = canvasSize.cy + paddingVertical * 2 + hScrollBarHeight;
-			SetScrollSizes(MM_TEXT, scrollSize);
-
-			//////////////////////////////////////////////////////////////////////////////////////////////////
-			// DRAWING CANVAS AND BACKGROUND
-
-			// Solve the problem of image not being drawn correctly while scrolling (artifacting).
-			CRect clipBoxRect; memDC.GetClipBox(&clipBoxRect);
-			memDC.FillSolidRect(clipBoxRect, RGB(220, 230, 240));  // Same color as area around canvas
-
-			// Draw area around canvas
-			GetClientRect(&clientRect);
-			memDC.FillSolidRect(clientRect, RGB(220, 230, 240));
-
-			// Draw canvas shadow
-			CRect canvasShadowRect(paddingHorizontal * 2,
-				paddingVertical * 2,
-				paddingHorizontal * 2 + canvasSize.cx,
-				paddingVertical * 2 + canvasSize.cy);
-			memDC.FillSolidRect(canvasShadowRect, RGB(210, 220, 230));
-
-			// Draw canvas
-			canvasRect.left = paddingHorizontal;
-			canvasRect.top = paddingVertical;
-			canvasRect.right = paddingHorizontal + canvasSize.cx;
-			canvasRect.bottom = paddingVertical + canvasSize.cy;
-			memDC.FillSolidRect(canvasRect, RGB(255, 255, 255));
-
-			// Draw canvas resize handle
-			resizeHandleRect.left = paddingHorizontal + canvasSize.cx;
-			resizeHandleRect.top = paddingVertical + canvasSize.cy;
-			resizeHandleRect.right = paddingHorizontal * 2 + canvasSize.cx;
-			resizeHandleRect.bottom = paddingVertical * 2 + canvasSize.cy;
-			memDC.FillSolidRect(resizeHandleRect, RGB(255, 255, 255));
-
-			// Draw a frame for canvas resize handle
-			CPen handlePen(PS_SOLID, 1, RGB(64, 64, 64));
-			CPen* pOldPen = memDC.SelectObject(&handlePen);
-
-			memDC.Rectangle(resizeHandleRect.left,
-				resizeHandleRect.top,
-				resizeHandleRect.right,
-				resizeHandleRect.bottom);
-			memDC.SelectObject(pOldPen);
-
-			// Copy the previously saved bitmap portion to the DC with new, larger bitmap
-			memDC.BitBlt(paddingHorizontal, paddingVertical, canvasSize.cx, canvasSize.cy,
-				&tmpDC, 0, 0, SRCCOPY);
-
-			// Call OnDraw to copy the memory DC to the screen DC
-			Invalidate();
+			// create a new to bitmap that is wider.
+			VERIFY(newBm.CreateCompatibleBitmap(&dc, neededBmSize.cx, bmHeight));
 		}
-		// Only height of the needed bitmap is larger than the current bitmap height
+		// If only height of the needed bitmap is larger than the current bitmap height,
 		else if (neededBmSize.cy > bmHeight)
 		{
-			// 1. Save the canvas portion of the current bitmap to a separate bitmap
-			CBitmap curCanvasBm;
-			VERIFY(curCanvasBm.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
-
-			CDC tmpDC;
-			tmpDC.CreateCompatibleDC(&dc);
-			CBitmap* pOldCanvasBm = tmpDC.SelectObject(&curCanvasBm);
-
-			tmpDC.BitBlt(0, 0, canvasSize.cx, canvasSize.cy,
-				&memDC, canvasRect.left, canvasRect.top, SRCCOPY);
-
-			// 2. Create a larger bitmap to accommodate the new canvas size
-			CBitmap largeBm;
-			VERIFY(largeBm.CreateCompatibleBitmap(&dc, bmWidth, neededBmSize.cy));
-
-			// 3. Select the larger bitmap to the memory DC
-			memDC.SelectObject(&largeBm);
-
-			// Update the canvas size based on the tracker rectangle
-			canvasSize.cx = trackRect.Width();
-			canvasSize.cy = trackRect.Height();
-
-			// Update the canvas rectangle position
-			canvasRect.right = paddingHorizontal + canvasSize.cx;
-			canvasRect.bottom = paddingVertical + canvasSize.cy;
-
-			// Update the resize handle rectangle position
-			resizeHandleRect.left = paddingHorizontal + canvasSize.cx;
-			resizeHandleRect.top = paddingVertical + canvasSize.cy;
-			resizeHandleRect.right = paddingHorizontal * 2 + canvasSize.cx;
-			resizeHandleRect.bottom = paddingVertical * 2 + canvasSize.cy;
-
-			int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
-			int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
-			// Calculate the scrollable area accounting for padding and width of scroll bars
-			CSize scrollSize;
-			scrollSize.cx = canvasSize.cx + paddingHorizontal * 2 + vScrollBarWidth;
-			scrollSize.cy = canvasSize.cy + paddingVertical * 2 + hScrollBarHeight;
-			SetScrollSizes(MM_TEXT, scrollSize);
-
-			//////////////////////////////////////////////////////////////////////////////////////////////////
-			// DRAWING CANVAS AND BACKGROUND
-
-			// Solve the problem of image not being drawn correctly while scrolling (artifacting).
-			CRect clipBoxRect; memDC.GetClipBox(&clipBoxRect);
-			memDC.FillSolidRect(clipBoxRect, RGB(220, 230, 240));  // Same color as area around canvas
-
-			// Draw area around canvas
-			GetClientRect(&clientRect);
-			memDC.FillSolidRect(clientRect, RGB(220, 230, 240));
-
-			// Draw canvas shadow
-			CRect canvasShadowRect(paddingHorizontal * 2,
-				paddingVertical * 2,
-				paddingHorizontal * 2 + canvasSize.cx,
-				paddingVertical * 2 + canvasSize.cy);
-			memDC.FillSolidRect(canvasShadowRect, RGB(210, 220, 230));
-
-			// Draw canvas
-			canvasRect.left = paddingHorizontal;
-			canvasRect.top = paddingVertical;
-			canvasRect.right = paddingHorizontal + canvasSize.cx;
-			canvasRect.bottom = paddingVertical + canvasSize.cy;
-			memDC.FillSolidRect(canvasRect, RGB(255, 255, 255));
-
-			// Draw canvas resize handle
-			resizeHandleRect.left = paddingHorizontal + canvasSize.cx;
-			resizeHandleRect.top = paddingVertical + canvasSize.cy;
-			resizeHandleRect.right = paddingHorizontal * 2 + canvasSize.cx;
-			resizeHandleRect.bottom = paddingVertical * 2 + canvasSize.cy;
-			memDC.FillSolidRect(resizeHandleRect, RGB(255, 255, 255));
-
-			// Draw a frame for canvas resize handle
-			CPen handlePen(PS_SOLID, 1, RGB(64, 64, 64));
-			CPen* pOldPen = memDC.SelectObject(&handlePen);
-
-			memDC.Rectangle(resizeHandleRect.left,
-				resizeHandleRect.top,
-				resizeHandleRect.right,
-				resizeHandleRect.bottom);
-			memDC.SelectObject(pOldPen);
-
-			// Copy the previously saved bitmap portion to the DC with new, larger bitmap
-			memDC.BitBlt(paddingHorizontal, paddingVertical, canvasSize.cx, canvasSize.cy,
-				&tmpDC, 0, 0, SRCCOPY);
-
-			// Call OnDraw to copy the memory DC to the screen DC
-			Invalidate();
+			// create a new bitmap that is taller.
+			VERIFY(newBm.CreateCompatibleBitmap(&dc, bmWidth, neededBmSize.cy));
 		}
-		// Bith width and height of the needed bitmap are the same as the current bitmap size
-		// but the canvas size is different
+		// If we don't need bigger bitmap, but the canvas size has changed,
 		else if (trackRect.Width() != canvasSize.cx || trackRect.Height() != canvasSize.cy)
 		{
-			// 1. Save the canvas portion of the current bitmap to a separate bitmap
-			CBitmap curCanvasBm;
-			VERIFY(curCanvasBm.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
-
-			CDC tmpDC;
-			tmpDC.CreateCompatibleDC(&dc);
-			CBitmap* pOldCanvasBm = tmpDC.SelectObject(&curCanvasBm);
-
-			tmpDC.BitBlt(0, 0, canvasSize.cx, canvasSize.cy,
-				&memDC, canvasRect.left, canvasRect.top, SRCCOPY);
-
-			// 2. Create a temporary bitmap that is the same size as the current bitmap
-			CBitmap tmpBm;
-			VERIFY(tmpBm.CreateCompatibleBitmap(&dc, bmWidth, bmHeight));
-
-			// 3. Select the secondary bitmap to the memory DC
-			memDC.SelectObject(&tmpBm);
-
-			CSize oldCanvasSize = canvasSize;  // Save the old canvas size
-
-			// 4. Draw the new background with new canvas size:
-
-			// Update the canvas size based on the tracker rectangle
-			canvasSize.cx = trackRect.Width();
-			canvasSize.cy = trackRect.Height();
-
-			// Update the canvas rectangle position
-			canvasRect.right = paddingHorizontal + canvasSize.cx;
-			canvasRect.bottom = paddingVertical + canvasSize.cy;
-
-			// Update the resize handle rectangle position
-			resizeHandleRect.left = paddingHorizontal + canvasSize.cx;
-			resizeHandleRect.top = paddingVertical + canvasSize.cy;
-			resizeHandleRect.right = paddingHorizontal * 2 + canvasSize.cx;
-			resizeHandleRect.bottom = paddingVertical * 2 + canvasSize.cy;
-
-			int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
-			int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
-			// Calculate the scrollable area accounting for padding and width of scroll bars
-			CSize scrollSize;
-			scrollSize.cx = canvasSize.cx + paddingHorizontal * 2 + vScrollBarWidth;
-			scrollSize.cy = canvasSize.cy + paddingVertical * 2 + hScrollBarHeight;
-			SetScrollSizes(MM_TEXT, scrollSize);
-
-			//////////////////////////////////////////////////////////////////////////////////////////////////
-			// DRAWING CANVAS AND BACKGROUND
-
-			// Solve the problem of image not being drawn correctly while scrolling (artifacting).
-			CRect clipBoxRect; memDC.GetClipBox(&clipBoxRect);
-			memDC.FillSolidRect(clipBoxRect, RGB(220, 230, 240));  // Same color as area around canvas
-
-			// Draw area around canvas
-			GetClientRect(&clientRect);
-			memDC.FillSolidRect(clientRect, RGB(220, 230, 240));
-
-			// Draw canvas shadow
-			CRect canvasShadowRect(paddingHorizontal * 2,
-				paddingVertical * 2,
-				paddingHorizontal * 2 + canvasSize.cx,
-				paddingVertical * 2 + canvasSize.cy);
-			memDC.FillSolidRect(canvasShadowRect, RGB(210, 220, 230));
-
-			// Draw canvas
-			canvasRect.left = paddingHorizontal;
-			canvasRect.top = paddingVertical;
-			canvasRect.right = paddingHorizontal + canvasSize.cx;
-			canvasRect.bottom = paddingVertical + canvasSize.cy;
-			memDC.FillSolidRect(canvasRect, RGB(255, 255, 255));
-
-			// Draw canvas resize handle
-			resizeHandleRect.left = paddingHorizontal + canvasSize.cx;
-			resizeHandleRect.top = paddingVertical + canvasSize.cy;
-			resizeHandleRect.right = paddingHorizontal * 2 + canvasSize.cx;
-			resizeHandleRect.bottom = paddingVertical * 2 + canvasSize.cy;
-			memDC.FillSolidRect(resizeHandleRect, RGB(255, 255, 255));
-
-			// Draw a frame for canvas resize handle
-			CPen handlePen(PS_SOLID, 1, RGB(64, 64, 64));
-			CPen* pOldPen = memDC.SelectObject(&handlePen);
-
-			memDC.Rectangle(resizeHandleRect.left,
-				resizeHandleRect.top,
-				resizeHandleRect.right,
-				resizeHandleRect.bottom);
-			memDC.SelectObject(pOldPen);
-
-			// Copy the previously saved bitmap portion to the DC
-			memDC.BitBlt(paddingHorizontal, paddingVertical, canvasSize.cx, canvasSize.cy,
-				&tmpDC, 0, 0, SRCCOPY);
-
-			Invalidate();
+			// create a new bitmap that is the same size as current one.
+			VERIFY(newBm.CreateCompatibleBitmap(&dc, bmWidth, bmHeight));
 		}
+
+		// Select the new bitmap to the memory DC
+		memDC.SelectObject(&newBm);
+
+		// Update the canvas size based on the tracker rectangle
+		canvasSize.cx = trackRect.Width();
+		canvasSize.cy = trackRect.Height();
+
+		// Fill the new bitmap with background and canvas
+		UpdateClientArea();
+
+		// Copy the previously saved canvas content to the new canvas.
+		memDC.BitBlt(paddingHorizontal, paddingVertical, canvasSize.cx, canvasSize.cy,
+			&tmpDC, 0, 0, SRCCOPY);
 	}
+
 	else  // lHint == 0 -> no resize, just redraw the view
 	{
-		// Update the canvas rectangle position
-		canvasRect.right = paddingHorizontal + canvasSize.cx;
-		canvasRect.bottom = paddingVertical + canvasSize.cy;
-
-		// Update the resize handle rectangle position
-		resizeHandleRect.left = paddingHorizontal + canvasSize.cx;
-		resizeHandleRect.top = paddingVertical + canvasSize.cy;
-		resizeHandleRect.right = paddingHorizontal * 2 + canvasSize.cx;
-		resizeHandleRect.bottom = paddingVertical * 2 + canvasSize.cy;
-
-		int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
-		int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
-		// Calculate the scrollable area accounting for padding and width of scroll bars
-		CSize scrollSize;
-		scrollSize.cx = canvasSize.cx + paddingHorizontal * 2 + vScrollBarWidth;
-		scrollSize.cy = canvasSize.cy + paddingVertical * 2 + hScrollBarHeight;
-		SetScrollSizes(MM_TEXT, scrollSize);
-
-		//////////////////////////////////////////////////////////////////////////////////////////////////
-		// DRAWING CANVAS AND BACKGROUND
-
-		// Solve the problem of image not being drawn correctly while scrolling (artifacting).
-		CRect clipBoxRect; memDC.GetClipBox(&clipBoxRect);
-		memDC.FillSolidRect(clipBoxRect, RGB(220, 230, 240));  // Same color as area around canvas
-
-		// Draw area around canvas
-		GetClientRect(&clientRect);
-		memDC.FillSolidRect(clientRect, RGB(220, 230, 240));
-
-		// Draw canvas shadow
-		CRect canvasShadowRect(paddingHorizontal * 2,
-			paddingVertical * 2,
-			paddingHorizontal * 2 + canvasSize.cx,
-			paddingVertical * 2 + canvasSize.cy);
-		memDC.FillSolidRect(canvasShadowRect, RGB(210, 220, 230));
-
-		// Draw canvas
-		canvasRect.left = paddingHorizontal;
-		canvasRect.top = paddingVertical;
-		canvasRect.right = paddingHorizontal + canvasSize.cx;
-		canvasRect.bottom = paddingVertical + canvasSize.cy;
-		memDC.FillSolidRect(canvasRect, RGB(255, 255, 255));
-
-		// Draw canvas resize handle
-		resizeHandleRect.left = paddingHorizontal + canvasSize.cx;
-		resizeHandleRect.top = paddingVertical + canvasSize.cy;
-		resizeHandleRect.right = paddingHorizontal * 2 + canvasSize.cx;
-		resizeHandleRect.bottom = paddingVertical * 2 + canvasSize.cy;
-		memDC.FillSolidRect(resizeHandleRect, RGB(255, 255, 255));
-
-		// Draw a frame for canvas resize handle
-		CPen handlePen(PS_SOLID, 1, RGB(64, 64, 64));
-		CPen* pOldPen = memDC.SelectObject(&handlePen);
-
-		memDC.Rectangle(resizeHandleRect.left,
-			resizeHandleRect.top,
-			resizeHandleRect.right,
-			resizeHandleRect.bottom);
-		memDC.SelectObject(pOldPen);
-
-		Invalidate();
+		UpdateClientArea();
 	}
+
+	// Call OnDraw to copy the memory DC to the screen DC
+	Invalidate();
 }
 
 BOOL CDrawView::OnEraseBkgnd(CDC* pDC)
 {
 	return 1;
+}
+
+////////////////////////////////////////////////////////////////////////
+//                       CDrawView helper methods                     //
+////////////////////////////////////////////////////////////////////////
+
+
+void CDrawView::UpdateClientArea()
+{
+	////////////////////////////////////////////////////////////////////
+	// CALCULATIG AN SETTING SIZES AND SCROLLING
+
+	int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
+	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
+
+	// Update the canvas rectangle position
+	canvasRect.right = paddingHorizontal + canvasSize.cx;
+	canvasRect.bottom = paddingVertical + canvasSize.cy;
+
+	// Update the resize handle rectangle position
+	resizeHandleRect.left = paddingHorizontal + canvasSize.cx;
+	resizeHandleRect.top = paddingVertical + canvasSize.cy;
+	resizeHandleRect.right = paddingHorizontal * 2 + canvasSize.cx;
+	resizeHandleRect.bottom = paddingVertical * 2 + canvasSize.cy;
+
+	// Calculate the scrollable area accounting for padding and width of scroll bars
+	CSize scrollSize;
+	scrollSize.cx = canvasSize.cx + paddingHorizontal * 2 + vScrollBarWidth;
+	scrollSize.cy = canvasSize.cy + paddingVertical * 2 + hScrollBarHeight;
+	SetScrollSizes(MM_TEXT, scrollSize);
+
+	////////////////////////////////////////////////////////////////////
+	// DRAWING CANVAS AND BACKGROUND
+
+	CRect clientRect; GetClientRect(&clientRect);
+
+	// Solve the problem of image not being drawn correctly while scrolling (artifacting).
+	CRect clipBoxRect; memDC.GetClipBox(&clipBoxRect);
+	memDC.FillSolidRect(clipBoxRect, RGB(220, 230, 240));  // Same color as area around canvas
+
+	// Draw area around canvas
+	GetClientRect(&clientRect);
+	memDC.FillSolidRect(clientRect, RGB(220, 230, 240));
+
+	// Draw canvas shadow
+	CRect canvasShadowRect(paddingHorizontal * 2,
+		paddingVertical * 2,
+		paddingHorizontal * 2 + canvasSize.cx,
+		paddingVertical * 2 + canvasSize.cy);
+	memDC.FillSolidRect(canvasShadowRect, RGB(210, 220, 230));
+
+	// Draw canvas
+	canvasRect.left = paddingHorizontal;
+	canvasRect.top = paddingVertical;
+	canvasRect.right = paddingHorizontal + canvasSize.cx;
+	canvasRect.bottom = paddingVertical + canvasSize.cy;
+	memDC.FillSolidRect(canvasRect, RGB(255, 255, 255));
+
+	// Draw canvas resize handle
+	resizeHandleRect.left = paddingHorizontal + canvasSize.cx;
+	resizeHandleRect.top = paddingVertical + canvasSize.cy;
+	resizeHandleRect.right = paddingHorizontal * 2 + canvasSize.cx;
+	resizeHandleRect.bottom = paddingVertical * 2 + canvasSize.cy;
+	memDC.FillSolidRect(resizeHandleRect, RGB(255, 255, 255));
+
+	// Draw a frame for canvas resize handle
+	CPen handlePen(PS_SOLID, 1, RGB(64, 64, 64));
+	CPen* pOldPen = memDC.SelectObject(&handlePen);
+
+	memDC.Rectangle(resizeHandleRect.left,
+		resizeHandleRect.top,
+		resizeHandleRect.right,
+		resizeHandleRect.bottom);
+	memDC.SelectObject(pOldPen);
 }

@@ -61,6 +61,8 @@ public:
 #endif
 
 protected:
+// Helper methods
+	void UpdateClientArea();
 
 // Generated message map functions
 protected:

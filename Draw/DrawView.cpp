@@ -322,6 +322,7 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 			trackRect = rectTracker.m_rect;
 
 			resizingMode = FALSE;
+			drawingMode = TRUE;
 
 			// Update the scroll sizes and redraw the view
 			GetDocument()->UpdateAllViews(NULL, 1, NULL);
@@ -338,7 +339,6 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 			return;  // do nothing.
 		}
 
-		drawingMode = TRUE;  // Mark that drawing has started
 		SetCapture();
 
 		CDrawDoc* pDoc = GetDocument();

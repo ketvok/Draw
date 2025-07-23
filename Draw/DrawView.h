@@ -18,8 +18,9 @@
 class CDrawView : public CScrollView
 {
 // Private data members
-	BOOL isDrawing;
-	BOOL isResizing;
+	BOOL drawingMode;
+	BOOL resizingMode;
+	BOOL strokeInProgress;
 	CSize canvasSize;
 	CRect canvasRect;
 	CRect resizeHandleRect;
@@ -27,6 +28,8 @@ class CDrawView : public CScrollView
 	int paddingVertical;
 	CBitmap drawingBitmap;
 	CDC memDC;
+	BOOL bitmapInitialized;
+	CRect trackRect;
 
 protected: // create from serialization only
 	CDrawView() noexcept;

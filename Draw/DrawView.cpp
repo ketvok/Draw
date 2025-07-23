@@ -510,41 +510,40 @@ BOOL CDrawView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 	// Each time the cursor moves and mouse input is not captured, the
 	// system sends a WM_SETCURSOR message to the window in which the
 	// cursor is moving.
+
+	// Get current cursor position (in screen coordinates)
+	CPoint point;
+	GetCursorPos(&point);
+	ScreenToClient(&point);
+
+	// Add scroll offset
+	CPoint scrollPos = GetScrollPosition();
+
+	CRect adjustedResizeHandleRect = resizeHandleRect;
+	adjustedResizeHandleRect.OffsetRect(-scrollPos.x, -scrollPos.y);
+
+	CRect adjustedCanvasRect = canvasRect;
+	adjustedCanvasRect.OffsetRect(-scrollPos.x, -scrollPos.y);
 	
+	// It is important that checks are done in a particular order,
+	// otherwise the cursor may not change correctly:
+
+	// 1. If cursor is over a scroll bar,
 	if (nHitTest == HTHSCROLL || nHitTest == HTVSCROLL)
 	{
-		// If the cursor is over a scroll bar, set the default arrow cursor.
+		// set the default arrow cursor.
 		HCURSOR curArrow;
 		curArrow = AfxGetApp()->LoadStandardCursor(IDC_ARROW);
 		SetCursor(curArrow);
 	}
+	// 2. If cursor is over a client area, but not over a scroll bar
 	else if (nHitTest == HTCLIENT)
-		// Important to check if it's in client area, otherwise it changes
-		// back to custom cursor when in narrow area between scroll bar and
-		// window border.
 	{
-		// Get current mouse position
-		CPoint point;
-		GetCursorPos(&point);  // Screen coordinates
-		ScreenToClient(&point);
-
-		// Add scroll offset
-		CPoint scrollPos = GetScrollPosition();
-		CRect adjustedResizeHandleRect = resizeHandleRect;
-		adjustedResizeHandleRect.OffsetRect(-scrollPos.x, -scrollPos.y);
-
-		// Check if cursor is over resize handle
-		if (adjustedResizeHandleRect.PtInRect(point))
+		// If cursor is over canvas,
+		if (adjustedCanvasRect.PtInRect(point))
 		{
-			// Set resize cursor
-			HCURSOR curResize;
-			curResize = AfxGetApp()->LoadStandardCursor(IDC_SIZENWSE);
-			SetCursor(curResize);
-		}
-		else
-		{
+			// set the custom cursor based on the drawing tool.
 			HINSTANCE hInstance = AfxGetInstanceHandle();
-
 			switch (GetDocument()->GetDrawingTool())
 			{
 			case pen:
@@ -561,12 +560,30 @@ BOOL CDrawView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 				SetCursor(curEraser);
 				break;
 			}
+			default:
+				break;
 			}  // End switch
 		}
-	}  // End if-else
+		// If cursor is over resize handle,
+		else if (adjustedResizeHandleRect.PtInRect(point))
+		{
+			// set the default resize cursor.
+			HCURSOR curResize;
+			curResize = AfxGetApp()->LoadStandardCursor(IDC_SIZENWSE);
+			SetCursor(curResize);
+		}
+		else
+		{
+			// Set the default arrow cursor
+			HCURSOR curArrow;
+			curArrow = AfxGetApp()->LoadStandardCursor(IDC_ARROW);
+			SetCursor(curArrow);
+		}
+	}
 
 	return TRUE;
 }
+
 void CDrawView::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	// Releases the mouse capture from OnLButtonDown.
@@ -720,10 +737,10 @@ BOOL CDrawView::OnEraseBkgnd(CDC* pDC)
 	return 1;
 }
 
+
 ////////////////////////////////////////////////////////////////////////
 //                       CDrawView helper methods                     //
 ////////////////////////////////////////////////////////////////////////
-
 
 void CDrawView::UpdateClientArea()
 {

@@ -42,12 +42,6 @@ BEGIN_MESSAGE_MAP(CDrawView, CScrollView)
 	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CDrawView::OnFilePrintPreview)
 	ON_WM_CONTEXTMENU()
 	ON_WM_RBUTTONUP()
-	ON_COMMAND(ID_FORECOLOR, &CDrawView::OnForecolor)
-	ON_COMMAND(ID_BACKCOLOR, &CDrawView::OnBackcolor)
-	ON_COMMAND(ID_GALLERY_SHAPES, &CDrawView::OnGalleryShapes)
-	ON_COMMAND(ID_GALLERY_COLORS, &CDrawView::OnGalleryColors)
-	ON_COMMAND(ID_OUTLINE, &CDrawView::OnOutline)
-	ON_COMMAND(ID_FILL, &CDrawView::OnFill)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
 	ON_WM_SETCURSOR()
@@ -161,12 +155,15 @@ void CDrawView::OnInitialUpdate()
 	// obstructed by the scroll bars
 	int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
 	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
-	canvasSize.cx = clientRect.Width() - paddingHorizontal * 2 - vScrollBarWidth;
-	canvasSize.cy = clientRect.Height() - paddingVertical * 2 - hScrollBarHeight;
+	canvasSize.cx = clientRect.Width()  - paddingHorizontal * 2 - vScrollBarWidth;
+	canvasSize.cy = clientRect.Height() - paddingVertical   * 2 - hScrollBarHeight;
 	
 	// Set the canvas rectangle to the calculated size and position
-	canvasRect.SetRect(paddingHorizontal, paddingVertical,
-		paddingHorizontal + canvasSize.cx, paddingVertical + canvasSize.cy);
+	canvasRect.SetRect(
+		paddingHorizontal,                   // left
+		paddingVertical,                     // top
+		paddingHorizontal + canvasSize.cx,   // right
+		paddingVertical   + canvasSize.cy);  // bottom
 	
 	trackRect = canvasRect;
 
@@ -253,42 +250,6 @@ CDrawDoc* CDrawView::GetDocument() const // non-debug version is inline
 ////////////////////////////////////////////////////////////////////////
 //                   CDrawView message handlers                       //
 ////////////////////////////////////////////////////////////////////////
-
-void CDrawView::OnForecolor()
-{
-	// TODO: Add your command handler code here
-	MessageBox(_T("Color 1 selected!"), _T("Color 1 Selection"), MB_OK | MB_ICONINFORMATION);
-}
-
-void CDrawView::OnBackcolor()
-{
-	// TODO: Add your command handler code here
-	MessageBox(_T("Color 2 selected!"), _T("Color 2 Selection"), MB_OK | MB_ICONINFORMATION);
-}
-
-void CDrawView::OnGalleryShapes()
-{
-	// TODO: Add your command handler code here
-	MessageBox(_T("Shape selected!"), _T("Shape Selection"), MB_OK | MB_ICONINFORMATION);
-}
-
-void CDrawView::OnGalleryColors()
-{
-	// TODO: Add your command handler code here
-	MessageBox(_T("Color selected!"), _T("Color Selection"), MB_OK | MB_ICONINFORMATION);
-}
-
-void CDrawView::OnOutline()
-{
-	// TODO: Add your command handler code here
-	MessageBox(_T("Outline button clicked!"), _T("Outline Selection"), MB_OK | MB_ICONINFORMATION);
-}
-
-void CDrawView::OnFill()
-{
-	// TODO: Add your command handler code here
-	MessageBox(_T("Fill button clicked!"), _T("Fill Selection"), MB_OK | MB_ICONINFORMATION);
-}
 
 void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 {
@@ -421,11 +382,12 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 			CBrush* pOldBrush = memDC.SelectObject(&cbrush);
 
 			// Draw a rectangle at the current point with the size of the eraser
-			Rectangle(memDC.m_hDC,
-					  point.x - pDoc->GetSizeEraser() / 2,
-					  point.y - pDoc->GetSizeEraser() / 2,
-					  point.x + pDoc->GetSizeEraser() / 2,
-					  point.y + pDoc->GetSizeEraser() / 2);
+			Rectangle(
+				memDC.m_hDC,
+				point.x - pDoc->GetSizeEraser() / 2,   // left
+				point.y - pDoc->GetSizeEraser() / 2,   // top
+				point.x + pDoc->GetSizeEraser() / 2,   // right
+				point.y + pDoc->GetSizeEraser() / 2);  // bottom
 
 			// Cleanup
 			memDC.SelectObject(pOldPen);
@@ -504,11 +466,12 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 					
 				// Draw a rectangle at the interpolated point
 				int eraserSize = pDoc->GetSizeEraser();
-				Rectangle(memDC.m_hDC,
-							x - eraserSize / 2,
-							y - eraserSize / 2,
-							x + eraserSize / 2,
-							y + eraserSize / 2);
+				Rectangle(
+					memDC.m_hDC,
+					x - eraserSize / 2,   // left
+					y - eraserSize / 2,   // top
+					x + eraserSize / 2,   // right
+					y + eraserSize / 2);  // bottom
 
 				// Add the interpolated point to the last Drawable object (Eraser)
 				pDoc->AddPoint(point);
@@ -649,10 +612,11 @@ void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 		else if (drawingMode == TRUE)
 		{
 			// If drawing, set the clipping region to the canvas rectangle
-			CRect clipRect(paddingHorizontal,
-				paddingVertical,
-				paddingHorizontal + canvasSize.cx,
-				paddingVertical + canvasSize.cy);
+			CRect clipRect(
+				paddingHorizontal,                   // left
+				paddingVertical,                     // top
+				paddingHorizontal + canvasSize.cx,   // right
+				paddingVertical   + canvasSize.cy);  // bottom
 
 			CRgn clipRgn;
 			clipRgn.CreateRectRgnIndirect(&clipRect);
@@ -692,8 +656,8 @@ void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM lHint, CObject* /*pHint*/)
 		LONG bmHeight = drawingBitmapInfo.bmHeight;
 
 		// Calculate the size of the bitmap needed to hold the new canvas
-		CSize neededBmSize{ trackRect.Width()  + (paddingHorizontal * 2) + vScrollBarWidth,
-						    trackRect.Height() + (paddingVertical * 2)   + hScrollBarHeight };
+		CSize neededBmSize{ trackRect.Width()  + paddingHorizontal * 2 + vScrollBarWidth,
+						    trackRect.Height() + paddingVertical   * 2 + hScrollBarHeight };
 
 		// Save the canvas portion of the current bitmap
 		CBitmap curCanvasBm;
@@ -774,19 +738,23 @@ void CDrawView::UpdateClientArea()
 	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
 
 	// Update the canvas rectangle position
-	canvasRect.right = paddingHorizontal + canvasSize.cx;
-	canvasRect.bottom = paddingVertical + canvasSize.cy;
+	canvasRect.right  = paddingHorizontal + canvasSize.cx;
+	canvasRect.bottom = paddingVertical   + canvasSize.cy;
 
 	// Update the resize handle rectangle position
-	resizeHandleRect.left = paddingHorizontal + canvasSize.cx;
-	resizeHandleRect.top = paddingVertical + canvasSize.cy;
-	resizeHandleRect.right = paddingHorizontal * 2 + canvasSize.cx;
-	resizeHandleRect.bottom = paddingVertical * 2 + canvasSize.cy;
+	int handleWidth = paddingHorizontal;
+	int handleHeight = paddingVertical;
+	
+	resizeHandleRect.SetRect(
+		canvasRect.right,                  // left
+		canvasRect.bottom,                 // top
+		canvasRect.right + handleWidth,    // right
+		canvasRect.bottom + handleHeight); // bottom
 
 	// Calculate the scrollable area accounting for padding and width of scroll bars
 	CSize scrollSize;
 	scrollSize.cx = canvasSize.cx + paddingHorizontal * 2 + vScrollBarWidth;
-	scrollSize.cy = canvasSize.cy + paddingVertical * 2 + hScrollBarHeight;
+	scrollSize.cy = canvasSize.cy + paddingVertical   * 2 + hScrollBarHeight;
 	SetScrollSizes(MM_TEXT, scrollSize);
 
 	////////////////////////////////////////////////////////////////////
@@ -803,33 +771,30 @@ void CDrawView::UpdateClientArea()
 	memDC.FillSolidRect(clientRect, RGB(220, 230, 240));
 
 	// Draw canvas shadow
-	CRect canvasShadowRect(paddingHorizontal * 2,
-		paddingVertical * 2,
+	CRect canvasShadowRect(
+		paddingHorizontal * 2,
+		paddingVertical   * 2,
 		paddingHorizontal * 2 + canvasSize.cx,
-		paddingVertical * 2 + canvasSize.cy);
+		paddingVertical   * 2 + canvasSize.cy);
 	memDC.FillSolidRect(canvasShadowRect, RGB(210, 220, 230));
 
 	// Draw canvas
-	canvasRect.left = paddingHorizontal;
-	canvasRect.top = paddingVertical;
-	canvasRect.right = paddingHorizontal + canvasSize.cx;
-	canvasRect.bottom = paddingVertical + canvasSize.cy;
+	canvasRect.left   = paddingHorizontal;
+	canvasRect.top    = paddingVertical;
+	canvasRect.right  = paddingHorizontal + canvasSize.cx;
+	canvasRect.bottom = paddingVertical   + canvasSize.cy;
 	memDC.FillSolidRect(canvasRect, RGB(255, 255, 255));
 
 	// Draw canvas resize handle
-	resizeHandleRect.left = paddingHorizontal + canvasSize.cx;
-	resizeHandleRect.top = paddingVertical + canvasSize.cy;
-	resizeHandleRect.right = paddingHorizontal * 2 + canvasSize.cx;
-	resizeHandleRect.bottom = paddingVertical * 2 + canvasSize.cy;
-	memDC.FillSolidRect(resizeHandleRect, RGB(255, 255, 255));
-
-	// Draw a frame for canvas resize handle
 	CPen handlePen(PS_SOLID, 1, RGB(64, 64, 64));
 	CPen* pOldPen = memDC.SelectObject(&handlePen);
 
-	memDC.Rectangle(resizeHandleRect.left,
+	memDC.Rectangle(
+		resizeHandleRect.left,
 		resizeHandleRect.top,
 		resizeHandleRect.right,
 		resizeHandleRect.bottom);
+
+	// Cleanup
 	memDC.SelectObject(pOldPen);
 }

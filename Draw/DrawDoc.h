@@ -70,7 +70,7 @@ public:
 	virtual void Dump(CDumpContext& dc) const;
 #endif
 	COLORREF foreColor = RGB(0, 0, 0); // TMP: Default color is black
-	COLORREF backColor = RGB(255, 0, 255); // TMP: Default background color is white
+	COLORREF backColor = RGB(255, 255, 255); // TMP: Default background color is white
 
 protected:
 

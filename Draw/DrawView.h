@@ -71,12 +71,6 @@ protected:
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
 	DECLARE_MESSAGE_MAP()
 public:
-	afx_msg void OnForecolor();
-	afx_msg void OnBackcolor();
-	afx_msg void OnGalleryShapes();
-	afx_msg void OnGalleryColors();
-	afx_msg void OnOutline();
-	afx_msg void OnFill();
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);

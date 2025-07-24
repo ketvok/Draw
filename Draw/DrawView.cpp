@@ -361,7 +361,7 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 
 			// Select a pen with the current size and color
 			CPen cpen(PS_SOLID, pDoc->GetSizePen(), pDoc->foreColor);
-			CPen* pOldPen = (CPen*)memDC.SelectObject(&cpen);
+			CPen* pOldPen = memDC.SelectObject(&cpen);
 
 			if (pDoc->GetSizePen() == 1)
 			{
@@ -416,9 +416,9 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 
 			// Select a pen and brush with the current size and color
 			CPen cpen(PS_SOLID, 1, pDoc->backColor);
-			CPen* pOldPen = (CPen*)memDC.SelectObject(&cpen);
+			CPen* pOldPen = memDC.SelectObject(&cpen);
 			CBrush cbrush(pDoc->backColor);
-			CBrush* pOldBrush = (CBrush*)memDC.SelectObject(&cbrush);
+			CBrush* pOldBrush = memDC.SelectObject(&cbrush);
 
 			// Draw a rectangle at the current point with the size of the eraser
 			Rectangle(memDC.m_hDC,
@@ -464,7 +464,7 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 
 			// Select a pen with the current size and color
 			CPen cpen(PS_SOLID, pDoc->GetSizePen(), pDoc->foreColor);
-			CPen* pOldPen = (CPen*)memDC.SelectObject(&cpen);
+			CPen* pOldPen = memDC.SelectObject(&cpen);
 			
 			// Draw a line from previous point to the current point
 			memDC.MoveTo(pDoc->GetPrevPoint());
@@ -485,9 +485,9 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 
 			// Select a pen and brush with the background color
 			CPen cpen(PS_SOLID, 1, pDoc->backColor);
-			CPen* pOldPen = (CPen*)memDC.SelectObject(&cpen);
+			CPen* pOldPen = memDC.SelectObject(&cpen);
 			CBrush cbrush(pDoc->backColor);
-			CBrush* pOldBrush = (CBrush*)memDC.SelectObject(&cbrush);
+			CBrush* pOldBrush = memDC.SelectObject(&cbrush);
 
 			// Calculate the points in between the previous point and the current point
 			CPoint prevPoint = pDoc->GetPrevPoint();
@@ -519,6 +519,7 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 
 			// Cleanup
 			memDC.SelectObject(pOldPen);
+			memDC.SelectObject(pOldBrush);
 
 			break;
 		}

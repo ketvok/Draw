@@ -69,19 +69,19 @@ BOOL CDrawDoc::OnNewDocument()
 
 void CDrawDoc::AddPoint(const CPoint& point)
 {
-	ASSERT(drawableArr.GetSize() > 0);
+	ASSERT(drawableArr.size() > 0);
 
 	switch (selectedDrawingTool)
 	{
 	case pen:
 	{
-		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.GetSize() - 1].get());
+		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.size() - 1].get());
 		penObj->AddPoint(point);
 		break;
 	}
 	case eraser:
 	{
-		Eraser* eraserObj = dynamic_cast<Eraser*>(drawableArr[drawableArr.GetSize() - 1].get());
+		Eraser* eraserObj = dynamic_cast<Eraser*>(drawableArr[drawableArr.size() - 1].get());
 		eraserObj->AddPoint(point);
 		break;
 	}
@@ -90,24 +90,24 @@ void CDrawDoc::AddPoint(const CPoint& point)
 
 void CDrawDoc::AddObject(std::shared_ptr<Drawable> pObject)
 {
-	drawableArr.Add(pObject);
+	drawableArr.push_back(pObject);
 }
 
 const POINT& CDrawDoc::GetPrevPoint()
 {
-	ASSERT(drawableArr.GetSize() > 0);
+	ASSERT(drawableArr.size() > 0);
 
 	switch (selectedDrawingTool)
 	{
 	case pen:
 	{
-		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.GetSize() - 1].get());
+		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.size() - 1].get());
 		return penObj->GetPrevPoint();
 		break;
 	}
 	case eraser:
 	{
-		Eraser* eraserObj = dynamic_cast<Eraser*>(drawableArr[drawableArr.GetSize() - 1].get());
+		Eraser* eraserObj = dynamic_cast<Eraser*>(drawableArr[drawableArr.size() - 1].get());
 		return eraserObj->GetPrevPoint();
 		break;
 	}
@@ -116,18 +116,18 @@ const POINT& CDrawDoc::GetPrevPoint()
 
 void CDrawDoc::SetPrevPoint(const CPoint& point)
 {
-	ASSERT(drawableArr.GetSize() > 0);
+	ASSERT(drawableArr.size() > 0);
 
 	switch (selectedDrawingTool)
 	{
 	case pen:
 	{
-		dynamic_cast<Pen*>(drawableArr[drawableArr.GetSize() - 1].get())->SetPrevPoint(point);
+		dynamic_cast<Pen*>(drawableArr[drawableArr.size() - 1].get())->SetPrevPoint(point);
 		break;
 	}
 	case eraser:
 	{
-		dynamic_cast<Eraser*>(drawableArr[drawableArr.GetSize() - 1].get())->SetPrevPoint(point);
+		dynamic_cast<Eraser*>(drawableArr[drawableArr.size() - 1].get())->SetPrevPoint(point);
 		break;
 	}
 	}
@@ -135,7 +135,7 @@ void CDrawDoc::SetPrevPoint(const CPoint& point)
 
 void CDrawDoc::DrawAll(CDC* pDC) const
 {
-	for (int i = 0; i < drawableArr.GetSize(); ++i)
+	for (int i = 0; i < drawableArr.size(); ++i)
 	{
 		drawableArr[i]->DrawYourself(pDC);
 	}

@@ -8,11 +8,11 @@ void Eraser::DrawYourself(CDC* pDC)
 	pDC->SelectObject(&pen);  // Nothing is being drawn if the pen is not selected into pDC
 	pDC->SelectObject(&brush);
 
-	if (points.GetSize() == 0)
+	if (points.size() == 0)
 	{
 		return;  // No points to draw
 	}
-	for (int i = 0; i < points.GetCount(); ++i)
+	for (int i = 0; i < points.size(); ++i)
 	{
 		pDC->Rectangle(points[i].x - eraserSize / 2, points[i].y - eraserSize / 2,
 			points[i].x + eraserSize / 2, points[i].y + eraserSize / 2);
@@ -21,7 +21,7 @@ void Eraser::DrawYourself(CDC* pDC)
 
 void Eraser::AddPoint(const CPoint& point)
 {
-	points.Add(point);
+	points.push_back(point);
 }
 
 void Eraser::SetPrevPoint(const CPoint& point)

@@ -1,10 +1,11 @@
 #pragma once
 #include "Drawable.h"
+#include <vector>
 
 class Eraser :
     public Drawable
 {
-    CArray<CPoint> points;
+    std::vector<CPoint> points;
     CPen pen;
     int eraserSize;
     COLORREF eraserColor;

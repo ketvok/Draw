@@ -1,10 +1,11 @@
 #pragma once
 #include "Drawable.h"
+#include <vector>
 
 class Pen :
     public Drawable
 {
-    CArray<CPoint> points;
+    std::vector<CPoint> points;
 	CPen pen;
 	int penSize;
 	COLORREF penColor;

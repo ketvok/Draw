@@ -10,11 +10,11 @@ void Pen::DrawYourself(CDC* pDC)
 
 	pDC->SelectObject(&pen);  // Nothing is being drawn if a pen is not selected into pDC
 	
-	if (points.GetSize() == 0)
+	if (points.size() == 0)
 	{
 		return; // No points to draw
 	}
-	for (int i = 0; i < points.GetCount(); ++i)
+	for (int i = 0; i < points.size(); ++i)
 	{
 		CPoint point = points[i];
 		if (i == 0)  // First and possibly only point
@@ -63,7 +63,7 @@ void Pen::DrawYourself(CDC* pDC)
 
 void Pen::AddPoint(const CPoint& point)
 {
-	points.Add(point);
+	points.push_back(point);
 }
 
 void Pen::SetPrevPoint(const CPoint& point)

@@ -16,6 +16,7 @@
 #pragma once
 #include "Drawable.h"
 #include <memory>
+#include <vector>
 
 enum drawingTool {
 	pen,
@@ -29,7 +30,7 @@ class CDrawDoc : public CDocument
 {
 // Private data members
 	drawingTool selectedDrawingTool;
-	CArray<std::shared_ptr<Drawable>> drawableArr;
+	std::vector<std::shared_ptr<Drawable>> drawableArr;
 	int sizePen;
 	int sizeEraser;
 	int sizeShape;

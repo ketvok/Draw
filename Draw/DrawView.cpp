@@ -598,16 +598,17 @@ void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 		{
 			return;
 		}
+
+		pDC->SetWindowOrg(0, 0);
+		pDC->SetWindowExt(clientRect.Width(), clientRect.Height());
+
+		pDC->SetViewportOrg(0, 0);
+		pDC->SetViewportExt(clientRect.Width(), clientRect.Height());
+
 		if (resizingMode == TRUE)
 		{
 			// If not drawing, remove the clipping region that is set to canvas only
 			memDC.SelectClipRgn(NULL);
-
-			pDC->SetWindowOrg(0, 0);
-			pDC->SetWindowExt(clientRect.Width(), clientRect.Height());
-
-			pDC->SetViewportOrg(0, 0);
-			pDC->SetViewportExt(clientRect.Width(), clientRect.Height());
 		}
 		else if (drawingMode == TRUE)
 		{
@@ -621,20 +622,6 @@ void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 			CRgn clipRgn;
 			clipRgn.CreateRectRgnIndirect(&clipRect);
 			memDC.SelectClipRgn(&clipRgn);
-
-			pDC->SetWindowOrg(0, 0);
-			pDC->SetWindowExt(clientRect.Width(), clientRect.Height());
-
-			pDC->SetViewportOrg(0, 0);
-			pDC->SetViewportExt(clientRect.Width(), clientRect.Height());
-		}
-		else
-		{
-			pDC->SetWindowOrg(0, 0);
-			pDC->SetWindowExt(clientRect.Width(), clientRect.Height());
-
-			pDC->SetViewportOrg(0, 0);
-			pDC->SetViewportExt(clientRect.Width(), clientRect.Height());
 		}
 	}  // End if-else
 }

@@ -67,71 +67,71 @@ BOOL CDrawDoc::OnNewDocument()
 	return TRUE;
 }
 
-void CDrawDoc::AddPoint(const CPoint& point)
-{
-	ASSERT(drawableArr.size() > 0);
-
-	switch (selectedDrawingTool)
-	{
-	case pen:
-	{
-		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.size() - 1].get());
-		penObj->AddPoint(point);
-		break;
-	}
-	case eraser:
-	{
-		Eraser* eraserObj = dynamic_cast<Eraser*>(drawableArr[drawableArr.size() - 1].get());
-		eraserObj->AddPoint(point);
-		break;
-	}
-	}
-}
+//void CDrawDoc::AddPoint(const CPoint& point)
+//{
+//	ASSERT(drawableArr.size() > 0);
+//
+//	switch (selectedDrawingTool)
+//	{
+//	case pen:
+//	{
+//		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.size() - 1].get());
+//		penObj->AddPoint(point);
+//		break;
+//	}
+//	case eraser:
+//	{
+//		Eraser* eraserObj = dynamic_cast<Eraser*>(drawableArr[drawableArr.size() - 1].get());
+//		eraserObj->AddPoint(point);
+//		break;
+//	}
+//	}
+//}
 
 void CDrawDoc::AddObject(std::shared_ptr<Drawable> pObject)
 {
 	drawableArr.push_back(pObject);
 }
 
-const POINT& CDrawDoc::GetPrevPoint()
-{
-	ASSERT(drawableArr.size() > 0);
+//const POINT& CDrawDoc::GetPrevPoint()
+//{
+//	ASSERT(drawableArr.size() > 0);
+//
+//	switch (selectedDrawingTool)
+//	{
+//	case pen:
+//	{
+//		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.size() - 1].get());
+//		return penObj->GetPrevPoint();
+//		break;
+//	}
+//	case eraser:
+//	{
+//		Eraser* eraserObj = dynamic_cast<Eraser*>(drawableArr[drawableArr.size() - 1].get());
+//		return eraserObj->GetPrevPoint();
+//		break;
+//	}
+//	}
+//}
 
-	switch (selectedDrawingTool)
-	{
-	case pen:
-	{
-		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.size() - 1].get());
-		return penObj->GetPrevPoint();
-		break;
-	}
-	case eraser:
-	{
-		Eraser* eraserObj = dynamic_cast<Eraser*>(drawableArr[drawableArr.size() - 1].get());
-		return eraserObj->GetPrevPoint();
-		break;
-	}
-	}
-}
-
-void CDrawDoc::SetPrevPoint(const CPoint& point)
-{
-	ASSERT(drawableArr.size() > 0);
-
-	switch (selectedDrawingTool)
-	{
-	case pen:
-	{
-		dynamic_cast<Pen*>(drawableArr[drawableArr.size() - 1].get())->SetPrevPoint(point);
-		break;
-	}
-	case eraser:
-	{
-		dynamic_cast<Eraser*>(drawableArr[drawableArr.size() - 1].get())->SetPrevPoint(point);
-		break;
-	}
-	}
-}
+//void CDrawDoc::SetPrevPoint(const CPoint& point)
+//{
+//	ASSERT(drawableArr.size() > 0);
+//
+//	switch (selectedDrawingTool)
+//	{
+//	case pen:
+//	{
+//		dynamic_cast<Pen*>(drawableArr[drawableArr.size() - 1].get()) -> SetPrevPoint(point);
+//		break;
+//	}
+//	case eraser:
+//	{
+//		dynamic_cast<Eraser*>(drawableArr[drawableArr.size() - 1].get()) -> SetPrevPoint(point);
+//		break;
+//	}
+//	}
+//}
 
 void CDrawDoc::DrawAll(CDC* pDC) const
 {

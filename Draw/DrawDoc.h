@@ -42,10 +42,11 @@ protected: // create from serialization only
 // Attributes
 public:
 	drawingTool GetDrawingTool() const { return selectedDrawingTool; };
-	void AddPoint(const CPoint& point);
+	Drawable& GetLastObject() { return *drawableArr.back(); };
+	//void AddPoint(const CPoint& point);
 	void AddObject(std::shared_ptr<Drawable> pObject);
-	const POINT& GetPrevPoint();
-	void SetPrevPoint(const CPoint& point);
+	//const POINT& GetPrevPoint();
+	//void SetPrevPoint(const CPoint& point);
 	void DrawAll(CDC* pDC) const;
 	const int GetSizePen() const { return sizePen; };
 	const int GetSizeEraser() const { return sizeEraser; };

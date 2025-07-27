@@ -261,9 +261,10 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 	// past the edge of the window.
 
 	CPoint scrollPos = GetScrollPosition();  // Get current scroll position
-		
+	
+	// Offset the reize handle rectagle by the scroll position
 	CRect adjustedResizeHandleRect = resizeHandleRect;
-	adjustedResizeHandleRect.OffsetRect(-scrollPos.x, -scrollPos.y);  // Adjust the rectangle by the scroll position
+	adjustedResizeHandleRect.OffsetRect(-scrollPos.x, -scrollPos.y);
 	
 	// Clicked inside the resize handle
 	if (adjustedResizeHandleRect.PtInRect(point))
@@ -274,8 +275,9 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 
 		CRectTracker rectTracker;
 
-		// startPoint is in client coordinates, so it needs to be adjusted by the scroll position
-		CPoint startPoint(canvasRect.left - scrollPos.x, canvasRect.top - scrollPos.y);
+		// Define startPoint for the rubber band tracker and adjust it by the scroll position
+		CPoint startPoint(canvasRect.left, canvasRect.top);
+		startPoint.Offset(-scrollPos.x, -scrollPos.y);
 
 		if (rectTracker.TrackRubberBand(this, startPoint, FALSE))
 		{
@@ -303,100 +305,28 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 		SetCapture();
 
 		CDrawDoc* pDoc = GetDocument();
-		CClientDC dc(this);  // Calls GetDC at construction time and ReleaseDC at destruction time
+
+		// Create appropriate tool based on drawing mode
+		std::shared_ptr<Drawable> currentTool;
 
 		switch (pDoc->GetDrawingTool())
 		{
 		case pen:
-		{
-			// For pen sizes >= 5, MoveTo/LineTo produce good results for drawing
-			// a dot, but for smaller sizes I do it manually for nicer results.
-
-			// Create a new Drawable Pen object
-			auto pen = std::make_shared<Pen>(pDoc->GetSizePen(), pDoc->foreColor);
-
-			pDoc->AddObject(pen);
-			pDoc->AddPoint(point);
-			pDoc->SetPrevPoint(point);  // Mark added point as previous for future reference
-			strokeInProgress = TRUE;
-
-			// Select a pen with the current size and color
-			CPen cpen(PS_SOLID, pDoc->GetSizePen(), pDoc->foreColor);
-			CPen* pOldPen = memDC.SelectObject(&cpen);
-
-			if (pDoc->GetSizePen() == 1)
-			{
-				memDC.MoveTo(point.x, point.y);
-				memDC.SetPixel(point.x, point.y, pDoc->foreColor);
-			}
-			else if (pDoc->GetSizePen() == 2)  // If pen size is 2, draw a 2 x 2 square
-			{
-				memDC.MoveTo(point.x, point.y);
-				memDC.SetPixel(point.x, point.y, pDoc->foreColor);
-				memDC.SetPixel(point.x - 1, point.y, pDoc->foreColor);
-				memDC.SetPixel(point.x, point.y - 1, pDoc->foreColor);
-				memDC.SetPixel(point.x - 1, point.y - 1, pDoc->foreColor);
-			}
-			else if (pDoc->GetSizePen() == 4)  // If pen size is 4, draw a 2 pixel wide cross
-			{
-				memDC.MoveTo(point.x, point.y);
-				memDC.SetPixel(point.x, point.y, pDoc->foreColor);
-				memDC.SetPixel(point.x, point.y - 1, pDoc->foreColor);
-				memDC.SetPixel(point.x, point.y - 2, pDoc->foreColor);
-				memDC.SetPixel(point.x, point.y + 1, pDoc->foreColor);
-				memDC.SetPixel(point.x - 1, point.y, pDoc->foreColor);
-				memDC.SetPixel(point.x - 1, point.y - 1, pDoc->foreColor);
-				memDC.SetPixel(point.x - 1, point.y - 2, pDoc->foreColor);
-				memDC.SetPixel(point.x - 1, point.y + 1, pDoc->foreColor);
-				memDC.SetPixel(point.x - 2, point.y, pDoc->foreColor);
-				memDC.SetPixel(point.x - 2, point.y - 1, pDoc->foreColor);
-				memDC.SetPixel(point.x + 1, point.y, pDoc->foreColor);
-				memDC.SetPixel(point.x + 1, point.y - 1, pDoc->foreColor);
-			}
-			else  // If pen size is > 4, use MoveTo/LineTo for drawing a dot
-			{
-				memDC.MoveTo(point.x, point.y);
-				memDC.SetDCPenColor(pDoc->foreColor);
-				memDC.LineTo(point.x, point.y);
-			}
-
-			// Cleanup
-			memDC.SelectObject(pOldPen);
-
+			currentTool = std::make_shared<Pen>(pDoc->GetSizePen(), pDoc->foreColor);
 			break;
-		}
 		case eraser:
-		{
-			// Create a new Drawable Eraser object
-			auto eraser = std::make_shared<Eraser>(pDoc->GetSizeEraser(), pDoc->backColor);
-
-			pDoc->AddObject(eraser);
-			pDoc->AddPoint(point);
-			pDoc->SetPrevPoint(point);  // Mark added point as previous for future reference
-			strokeInProgress = TRUE;
-
-			// Select a pen and brush with the current size and color
-			CPen cpen(PS_SOLID, 1, pDoc->backColor);
-			CPen* pOldPen = memDC.SelectObject(&cpen);
-			CBrush cbrush(pDoc->backColor);
-			CBrush* pOldBrush = memDC.SelectObject(&cbrush);
-
-			// Draw a rectangle at the current point with the size of the eraser
-			Rectangle(
-				memDC.m_hDC,
-				point.x - pDoc->GetSizeEraser() / 2,   // left
-				point.y - pDoc->GetSizeEraser() / 2,   // top
-				point.x + pDoc->GetSizeEraser() / 2,   // right
-				point.y + pDoc->GetSizeEraser() / 2);  // bottom
-
-			// Cleanup
-			memDC.SelectObject(pOldPen);
-			memDC.SelectObject(pOldBrush);
-
+			currentTool = std::make_shared<Eraser>(pDoc->GetSizeEraser(), pDoc->backColor);
 			break;
 		}
-		}  // End switch
+
+		// Add the new Drawable object to the document's drawable container
+		pDoc->AddObject(currentTool);
 		
+		strokeInProgress = TRUE;
+
+		// Let the tool handle the mouse event
+		currentTool->OnLButtonDown(&memDC, point);
+
 		Invalidate();
 	}  // End if-else
 }
@@ -408,8 +338,6 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 
 	CDrawDoc* pDoc = GetDocument();
 
-	CClientDC dc(this);
-
 	CPoint scrollPos = GetScrollPosition();
 	point.Offset(scrollPos.x, scrollPos.y);  // Offset the point by the scroll position
 
@@ -417,76 +345,11 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 		// If the high order bit of return value is set,
 		//  the left mouse button is down.
 	{
-		switch (pDoc->GetDrawingTool())
-		{
-		case pen:
-		{
-			// Add the current point to the last Drawable object (Pen)
-			pDoc->AddPoint(point);
+		Drawable& currentTool = pDoc->GetLastObject();
 
-			// Select a pen with the current size and color
-			CPen cpen(PS_SOLID, pDoc->GetSizePen(), pDoc->foreColor);
-			CPen* pOldPen = memDC.SelectObject(&cpen);
-			
-			// Draw a line from previous point to the current point
-			memDC.MoveTo(pDoc->GetPrevPoint());
-			memDC.LineTo(point);
-			
-			// Set the current point as previous
-			pDoc->SetPrevPoint(point);
+		// Let the tool handle the mouse event
+		currentTool.OnMouseMove(&memDC, point);
 
-			// Cleanup
-			memDC.SelectObject(pOldPen);
-			
-			break;
-		}
-		case eraser:
-		{
-			// Add the current point to the last Drawable object (Eraser)
-			pDoc->AddPoint(point);
-
-			// Select a pen and brush with the background color
-			CPen cpen(PS_SOLID, 1, pDoc->backColor);
-			CPen* pOldPen = memDC.SelectObject(&cpen);
-			CBrush cbrush(pDoc->backColor);
-			CBrush* pOldBrush = memDC.SelectObject(&cbrush);
-
-			// Calculate the points in between the previous point and the current point
-			CPoint prevPoint = pDoc->GetPrevPoint();
-			int dx = point.x - prevPoint.x;     // Difference in x coordinates
-			int dy = point.y - prevPoint.y;     // Difference in y coordinates
-			int steps = max(abs(dx), abs(dy));  // Number of steps needed for the line
-
-			// Draw a "line" from the previous point to the current point
-			for (int i = 1; i <= steps; ++i)
-			{
-				// Calculate the interpolated point based on the step
-				int x = prevPoint.x + dx * i / steps;
-				int y = prevPoint.y + dy * i / steps;
-					
-				// Draw a rectangle at the interpolated point
-				int eraserSize = pDoc->GetSizeEraser();
-				Rectangle(
-					memDC.m_hDC,
-					x - eraserSize / 2,   // left
-					y - eraserSize / 2,   // top
-					x + eraserSize / 2,   // right
-					y + eraserSize / 2);  // bottom
-
-				// Add the interpolated point to the last Drawable object (Eraser)
-				pDoc->AddPoint(point);
-			}
-
-			// Set the current point as previous
-			pDoc->SetPrevPoint(point);
-
-			// Cleanup
-			memDC.SelectObject(pOldPen);
-			memDC.SelectObject(pOldBrush);
-
-			break;
-		}
-		}  // End switch
 		Invalidate();
 	}
 }

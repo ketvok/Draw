@@ -7,6 +7,8 @@ Draw is a Microsoft Paint-like drawing application built using C++ and MFC.
 
 - Each tool has 4 size options, unique to the tool
 
+- Choose color for each tool separately.
+
 - Draw freely on a resizable white canvas
 
 - Canvas resizing via drag handle at the bottom-right corner

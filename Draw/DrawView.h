@@ -26,8 +26,6 @@ class CDrawView : public CScrollView
 	CRect resizeHandleRect;
 	int paddingHorizontal;
 	int paddingVertical;
-	CBitmap drawingBitmap;
-	CDC memDC;
 	BOOL bitmapInitialized;
 	CRect trackRect;
 

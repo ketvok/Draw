@@ -256,3 +256,14 @@ void CDrawDoc::OnBackcolor()
 
 	backColor = pColorButton->GetColor();
 }
+
+void CDrawDoc::DeleteContents()
+{
+	drawableArr.clear();
+	drawingBitmap.DeleteObject();
+	memDC.DeleteDC();
+	foreColor = RGB(0, 0, 0);  // Black
+	backColor = RGB(255, 255, 255);  // White
+
+	CDocument::DeleteContents();
+}

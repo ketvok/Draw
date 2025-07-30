@@ -25,6 +25,7 @@
 #include "Pen.h"
 #include "Eraser.h"
 #include <cmath>
+#include "MainFrm.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -80,6 +81,8 @@ void CDrawView::OnDraw(CDC* pDC)
     if (!pDoc)
         return;
 
+	CDC& memDC = *pDoc->GetMemDC();
+
 	////////////////
 	// NOT PRINTING
 	if (!pDC->IsPrinting())
@@ -133,10 +136,25 @@ void CDrawView::OnDraw(CDC* pDC)
 
 void CDrawView::OnInitialUpdate()
 {
-	CClientDC dc(this);
-	CRect clientRect; GetClientRect(&clientRect);
+	CDrawDoc* pDoc = GetDocument();
+	CBitmap& drawingBitmap = pDoc->GetDrawingBitmap();
+	CDC& memDC = *pDoc->GetMemDC();
+
+	CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+
+	// Reset foreground color to default value
+	pMainFrame->m_wndRibbonBar.GetElementsByID(ID_FORECOLOR, arr);
+	CMFCRibbonColorButton* pForeColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+	pForeColorButton->SetColor(pDoc->GetForeColor());
+
+	// Reset background color to default value
+	pMainFrame->m_wndRibbonBar.GetElementsByID(ID_BACKCOLOR, arr);
+	CMFCRibbonColorButton* pBackColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+	pBackColorButton->SetColor(pDoc->GetBackColor());
 
 	// Initialize the memory DC and bitmap for drawing
+	CClientDC dc(this);
     VERIFY(drawingBitmap.CreateCompatibleBitmap(&dc, GetDeviceCaps(dc, HORZRES), GetDeviceCaps(dc, VERTRES)));
 	memDC.CreateCompatibleDC(&dc);
 	memDC.SelectObject(&drawingBitmap);
@@ -153,6 +171,7 @@ void CDrawView::OnInitialUpdate()
 
 	// Calculate the size of the canvas based on the client area size, making sure it does not get
 	// obstructed by the scroll bars
+	CRect clientRect; GetClientRect(&clientRect);
 	int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
 	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
 	canvasSize.cx = clientRect.Width()  - paddingHorizontal * 2 - vScrollBarWidth;
@@ -174,6 +193,11 @@ void CDrawView::OnInitialUpdate()
 	SetScrollSizes(MM_TEXT, scrollSize);
 
 	CScrollView::OnInitialUpdate();
+
+	//Adjusts the layout of all items in the ribbon bar and parent window and redraws the whole
+	//window. This is needed to instantly update the ribbon on File>New to reflect changes in
+	//color buttons. Must be here at the bottom, otherwise - error.
+	pMainFrame->m_wndRibbonBar.ForceRecalcLayout();
 }
 
 
@@ -325,6 +349,7 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 		strokeInProgress = TRUE;
 
 		// Let the tool handle the mouse event
+		CDC& memDC = *pDoc->GetMemDC();
 		currentTool->OnLButtonDown(&memDC, point);
 
 		Invalidate();
@@ -348,6 +373,7 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 		Drawable& currentTool = pDoc->GetLastObject();
 
 		// Let the tool handle the mouse event
+		CDC& memDC = *pDoc->GetMemDC();
 		currentTool.OnMouseMove(&memDC, point);
 
 		Invalidate();
@@ -468,6 +494,9 @@ void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 		pDC->SetViewportOrg(0, 0);
 		pDC->SetViewportExt(clientRect.Width(), clientRect.Height());
 
+		CDrawDoc* pDoc = GetDocument();
+		CDC& memDC = *pDoc->GetMemDC();
+
 		if (resizingMode == TRUE)
 		{
 			// If not drawing, remove the clipping region that is set to canvas only
@@ -492,7 +521,6 @@ void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM lHint, CObject* /*pHint*/)
 {
 	CClientDC dc(this);
-	CRect clientRect; GetClientRect(&clientRect);
 
 	int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
 	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
@@ -501,6 +529,7 @@ void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM lHint, CObject* /*pHint*/)
 	{
 		// Get current bitmap and its size
 		BITMAP drawingBitmapInfo;
+		CBitmap& drawingBitmap = GetDocument()->GetDrawingBitmap();
 		drawingBitmap.GetBitmap(&drawingBitmapInfo);
 		LONG bmWidth = drawingBitmapInfo.bmWidth;
 		LONG bmHeight = drawingBitmapInfo.bmHeight;
@@ -515,6 +544,7 @@ void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM lHint, CObject* /*pHint*/)
 		CDC tmpDC;
 		tmpDC.CreateCompatibleDC(&dc);
 		CBitmap* pOldCanvasBm = tmpDC.SelectObject(&curCanvasBm);
+		CDC& memDC = *GetDocument()->GetMemDC();
 		tmpDC.BitBlt(0, 0, canvasSize.cx, canvasSize.cy,
 			&memDC, canvasRect.left, canvasRect.top, SRCCOPY);
 
@@ -613,6 +643,7 @@ void CDrawView::UpdateClientArea()
 	CRect clientRect; GetClientRect(&clientRect);
 
 	// Solve the problem of image not being drawn correctly while scrolling (artifacting).
+	CDC& memDC = *GetDocument()->GetMemDC();
 	CRect clipBoxRect; memDC.GetClipBox(&clipBoxRect);
 	memDC.FillSolidRect(clipBoxRect, RGB(220, 230, 240));  // Same color as area around canvas
 

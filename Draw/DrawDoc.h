@@ -29,8 +29,10 @@ enum drawingTool {
 class CDrawDoc : public CDocument
 {
 // Private data members
-	drawingTool selectedDrawingTool;
 	std::vector<std::shared_ptr<Drawable>> drawableArr;
+	CBitmap drawingBitmap;
+	CDC memDC;
+	drawingTool selectedDrawingTool;
 	int sizePen;
 	int sizeEraser;
 	int sizeShape;
@@ -45,16 +47,15 @@ protected: // create from serialization only
 public:
 	drawingTool GetDrawingTool() const { return selectedDrawingTool; };
 	Drawable& GetLastObject() { return *drawableArr.back(); };
-	//void AddPoint(const CPoint& point);
 	void AddObject(std::shared_ptr<Drawable> pObject);
-	//const POINT& GetPrevPoint();
-	//void SetPrevPoint(const CPoint& point);
 	void DrawAll(CDC* pDC) const;
 	const int GetSizePen() const { return sizePen; };
 	const int GetSizeEraser() const { return sizeEraser; };
 	const int GetSizeShape() const { return sizeShape; };
 	const COLORREF GetForeColor() const { return foreColor; };
 	const COLORREF GetBackColor() const { return backColor; };
+	CBitmap& GetDrawingBitmap() { return drawingBitmap; }
+	CDC* GetMemDC() { return &memDC; }
 
 // Operations
 public:
@@ -94,4 +95,5 @@ public:
 	afx_msg void OnGallerySize();
 	afx_msg void OnForecolor();
 	afx_msg void OnBackcolor();
+	virtual void DeleteContents();
 };

@@ -312,10 +312,10 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 		switch (pDoc->GetDrawingTool())
 		{
 		case pen:
-			currentTool = std::make_shared<Pen>(pDoc->GetSizePen(), pDoc->foreColor);
+			currentTool = std::make_shared<Pen>(pDoc->GetSizePen(), pDoc->GetForeColor());
 			break;
 		case eraser:
-			currentTool = std::make_shared<Eraser>(pDoc->GetSizeEraser(), pDoc->backColor);
+			currentTool = std::make_shared<Eraser>(pDoc->GetSizeEraser(), pDoc->GetBackColor());
 			break;
 		}
 

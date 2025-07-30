@@ -17,7 +17,6 @@
 #include "Draw.h"
 
 #include "MainFrm.h"
-#include "ForeBackColBtn.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -56,42 +55,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	m_wndRibbonBar.Create(this);
 	m_wndRibbonBar.LoadFromResource(IDR_RIBBON);
-
-
-	// ************************************************************
-	// *         Foreground and Background color buttons          *
-	// ************************************************************
-
-	// Find the colors gallery in the ribbon bar
-	CMFCRibbonBaseElement* pColors = m_wndRibbonBar.FindByID(ID_GALLERY_COLORS);
-	ASSERT(pColors != nullptr);
-	
-	// Find the panel that contains the colors gallery
-	CMFCRibbonPanel* pPanel = pColors->GetParentPanel();
-	ASSERT (pPanel != nullptr);
-	
-	// Create and insert new custom buttons for foreground and background colors
-	ForeBackColBtn* pMyBackButton = new ForeBackColBtn(ID_BACKCOLOR, _T(""));
-	pPanel->Insert(pMyBackButton, 0);
-	
-	ForeBackColBtn* pMyForeButton = new ForeBackColBtn(ID_FORECOLOR, _T(""));
-	pPanel->Insert(pMyForeButton, 0);
-
-	// Find the size selection gallery
-	CMFCRibbonBaseElement* pGallery = m_wndRibbonBar.FindByID(ID_GALLERY_SIZE);
-	ASSERT(pGallery != nullptr);
-
-	// Get the size of the gallery
-	CDC* pDC = GetDC();
-	CSize gallerySize = pGallery->GetRegularSize(pDC);
-	ReleaseDC(pDC);
-
-	// Set the custom button size to match the gallery size
-	pMyForeButton->SetCustomRegularSize(gallerySize);
-	pMyBackButton->SetCustomRegularSize(gallerySize);
-
-	// ************************************************************
-
 
 	// Deselect first gallery item which is otherwise selected by default on app start
 	CMFCRibbonGallery* pGalleryShapes = (CMFCRibbonGallery*)m_wndRibbonBar.FindByID(ID_GALLERY_SHAPES);

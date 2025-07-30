@@ -34,6 +34,8 @@ class CDrawDoc : public CDocument
 	int sizePen;
 	int sizeEraser;
 	int sizeShape;
+	COLORREF foreColor = RGB(0, 0, 0);
+	COLORREF backColor = RGB(255, 255, 255);
 
 protected: // create from serialization only
 	CDrawDoc() noexcept;
@@ -51,6 +53,8 @@ public:
 	const int GetSizePen() const { return sizePen; };
 	const int GetSizeEraser() const { return sizeEraser; };
 	const int GetSizeShape() const { return sizeShape; };
+	const COLORREF GetForeColor() const { return foreColor; };
+	const COLORREF GetBackColor() const { return backColor; };
 
 // Operations
 public:
@@ -71,8 +75,6 @@ public:
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
 #endif
-	COLORREF foreColor = RGB(0, 0, 0); // TMP: Default color is black
-	COLORREF backColor = RGB(255, 255, 255); // TMP: Default background color is white
 
 protected:
 
@@ -90,4 +92,6 @@ public:
 	afx_msg void OnUpdateButtonPen(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateButtonEraser(CCmdUI* pCmdUI);
 	afx_msg void OnGallerySize();
+	afx_msg void OnForecolor();
+	afx_msg void OnBackcolor();
 };

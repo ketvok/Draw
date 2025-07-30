@@ -188,7 +188,6 @@
     <ClInclude Include="DrawDoc.h" />
     <ClInclude Include="DrawView.h" />
     <ClInclude Include="Eraser.h" />
-    <ClInclude Include="ForeBackColBtn.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="pch.h" />
@@ -202,7 +201,6 @@
     <ClCompile Include="DrawDoc.cpp" />
     <ClCompile Include="DrawView.cpp" />
     <ClCompile Include="Eraser.cpp" />
-    <ClCompile Include="ForeBackColBtn.cpp" />
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

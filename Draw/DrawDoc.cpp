@@ -41,6 +41,8 @@ BEGIN_MESSAGE_MAP(CDrawDoc, CDocument)
 	ON_UPDATE_COMMAND_UI(ID_BUTTON_PEN, &CDrawDoc::OnUpdateButtonPen)
 	ON_UPDATE_COMMAND_UI(ID_BUTTON_ERASER, &CDrawDoc::OnUpdateButtonEraser)
 	ON_COMMAND(ID_GALLERY_SIZE, &CDrawDoc::OnGallerySize)
+	ON_COMMAND(ID_FORECOLOR, &CDrawDoc::OnForecolor)
+	ON_COMMAND(ID_BACKCOLOR, &CDrawDoc::OnBackcolor)
 END_MESSAGE_MAP()
 
 
@@ -67,71 +69,10 @@ BOOL CDrawDoc::OnNewDocument()
 	return TRUE;
 }
 
-//void CDrawDoc::AddPoint(const CPoint& point)
-//{
-//	ASSERT(drawableArr.size() > 0);
-//
-//	switch (selectedDrawingTool)
-//	{
-//	case pen:
-//	{
-//		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.size() - 1].get());
-//		penObj->AddPoint(point);
-//		break;
-//	}
-//	case eraser:
-//	{
-//		Eraser* eraserObj = dynamic_cast<Eraser*>(drawableArr[drawableArr.size() - 1].get());
-//		eraserObj->AddPoint(point);
-//		break;
-//	}
-//	}
-//}
-
 void CDrawDoc::AddObject(std::shared_ptr<Drawable> pObject)
 {
 	drawableArr.push_back(pObject);
 }
-
-//const POINT& CDrawDoc::GetPrevPoint()
-//{
-//	ASSERT(drawableArr.size() > 0);
-//
-//	switch (selectedDrawingTool)
-//	{
-//	case pen:
-//	{
-//		Pen* penObj = dynamic_cast<Pen*>(drawableArr[drawableArr.size() - 1].get());
-//		return penObj->GetPrevPoint();
-//		break;
-//	}
-//	case eraser:
-//	{
-//		Eraser* eraserObj = dynamic_cast<Eraser*>(drawableArr[drawableArr.size() - 1].get());
-//		return eraserObj->GetPrevPoint();
-//		break;
-//	}
-//	}
-//}
-
-//void CDrawDoc::SetPrevPoint(const CPoint& point)
-//{
-//	ASSERT(drawableArr.size() > 0);
-//
-//	switch (selectedDrawingTool)
-//	{
-//	case pen:
-//	{
-//		dynamic_cast<Pen*>(drawableArr[drawableArr.size() - 1].get()) -> SetPrevPoint(point);
-//		break;
-//	}
-//	case eraser:
-//	{
-//		dynamic_cast<Eraser*>(drawableArr[drawableArr.size() - 1].get()) -> SetPrevPoint(point);
-//		break;
-//	}
-//	}
-//}
 
 void CDrawDoc::DrawAll(CDC* pDC) const
 {
@@ -296,4 +237,22 @@ void CDrawDoc::OnGallerySize()
 		sizeShape = 8;
 		break;
 	}
+}
+
+void CDrawDoc::OnForecolor()
+{
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_FORECOLOR, arr);
+	CMFCRibbonColorButton* pColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+
+	foreColor = pColorButton->GetColor();
+}
+
+void CDrawDoc::OnBackcolor()
+{
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_BACKCOLOR, arr);
+	CMFCRibbonColorButton* pColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+
+	backColor = pColorButton->GetColor();
 }

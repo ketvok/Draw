@@ -48,11 +48,33 @@ BEGIN_MESSAGE_MAP(CDrawView, CScrollView)
 	ON_WM_SETCURSOR()
 	ON_WM_LBUTTONUP()
 	ON_WM_ERASEBKGND()
+	ON_COMMAND(ID_BUTTON_PEN, &CDrawView::OnButtonPen)
+	ON_COMMAND(ID_BUTTON_ERASER, &CDrawView::OnButtonEraser)
+	ON_UPDATE_COMMAND_UI(ID_BUTTON_PEN, &CDrawView::OnUpdateButtonPen)
+	ON_UPDATE_COMMAND_UI(ID_BUTTON_ERASER, &CDrawView::OnUpdateButtonEraser)
+	ON_COMMAND(ID_GALLERY_SIZE, &CDrawView::OnGallerySize)
+	ON_COMMAND(ID_FORECOLOR, &CDrawView::OnForecolor)
+	ON_COMMAND(ID_BACKCOLOR, &CDrawView::OnBackcolor)
 END_MESSAGE_MAP()
 
 // CDrawView construction/destruction
 
-CDrawView::CDrawView() noexcept : drawingMode{ TRUE }, resizingMode{ FALSE }, strokeInProgress{ FALSE }, paddingHorizontal { 0 }, paddingVertical { 0 }, bitmapInitialized{ FALSE }
+CDrawView::CDrawView() noexcept :
+	drawingMode{ TRUE },
+	resizingMode{ FALSE },
+	canvasSize{ 0, 0 },
+	canvasRect{ 0, 0, 0, 0 },
+	resizeHandleRect{ 0, 0, 0, 0 },
+	paddingHorizontal { 0 },
+	paddingVertical { 0 },
+	bitmapInitialized{ FALSE },
+	trackRect{ 0, 0, 0, 0 },
+	foreColor{ RGB(0, 0, 0) },  // black
+	backColor{ RGB(255, 255, 255) },  // white
+	sizePen{ 1 },
+	sizeEraser{ 4 },
+	sizeShape{ 1 },
+	currentTool{ std::make_unique<PenTool>() }  // Default tool is Pen
 {
 	// TODO: add construction code here
 }
@@ -81,7 +103,7 @@ void CDrawView::OnDraw(CDC* pDC)
     if (!pDoc)
         return;
 
-	CDC& memDC = *pDoc->GetMemDC();
+	CDC& canvasDC = *pDoc->GetCanvasDC();
 
 	////////////////
 	// NOT PRINTING
@@ -89,16 +111,20 @@ void CDrawView::OnDraw(CDC* pDC)
 	{	
 		CRect clientRect; GetClientRect(&clientRect);
 
-		if (memDC.m_hDC != NULL)
+		if (bkgDC.m_hDC != NULL)
 		{
 			// Get the current scroll position
 			CPoint scrollPos = GetScrollPosition();
 			// Offset the client rectangle by the scroll position
 			clientRect.OffsetRect(scrollPos);
+
+			// Copy the canvas DC to the background DC
+			VERIFY(bkgDC.BitBlt(paddingHorizontal, paddingVertical, canvasSize.cx, canvasSize.cy,
+				&canvasDC, 0, 0, SRCCOPY));
 			
-			// Copy the memory DC to the device context
+			// Copy the background DC to the screen DC
 			VERIFY(pDC->BitBlt(0, 0, clientRect.Width(), clientRect.Height(),
-				&memDC, scrollPos.x, scrollPos.y, SRCCOPY));
+				&bkgDC, scrollPos.x, scrollPos.y, SRCCOPY));
 		}
 	}
 
@@ -127,45 +153,43 @@ void CDrawView::OnDraw(CDC* pDC)
 		int viewportWidth = static_cast<int>(std::round(canvasSize.cx * scaleFactor));
 		int viewportHeight = static_cast<int>(std::round(canvasSize.cy * scaleFactor));
 
-
-		// Copy the memory DC to the device context
-		pDC->StretchBlt(0, 0, viewportWidth, viewportHeight,
-			&memDC, paddingHorizontal, paddingVertical, canvasSize.cx, canvasSize.cy, SRCCOPY);
+		// Copy the canvas DC to the printing DC
+		VERIFY(pDC->StretchBlt(0, 0, viewportWidth, viewportHeight,
+			&canvasDC, 0, 0, canvasSize.cx, canvasSize.cy, SRCCOPY));
 	}
 }
 
 void CDrawView::OnInitialUpdate()
 {
-	CDrawDoc* pDoc = GetDocument();
-	CBitmap& drawingBitmap = pDoc->GetDrawingBitmap();
-	CDC& memDC = *pDoc->GetMemDC();
-
 	CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
 
 	// Reset foreground color to default value
 	pMainFrame->m_wndRibbonBar.GetElementsByID(ID_FORECOLOR, arr);
 	CMFCRibbonColorButton* pForeColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
-	pForeColorButton->SetColor(pDoc->GetForeColor());
+	pForeColorButton->SetColor(RGB(0, 0, 0));
 
 	// Reset background color to default value
 	pMainFrame->m_wndRibbonBar.GetElementsByID(ID_BACKCOLOR, arr);
 	CMFCRibbonColorButton* pBackColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
-	pBackColorButton->SetColor(pDoc->GetBackColor());
+	pBackColorButton->SetColor(RGB(255, 255, 255));
 
 	// Initialize the memory DC and bitmap for drawing
 	CClientDC dc(this);
-    VERIFY(drawingBitmap.CreateCompatibleBitmap(&dc, GetDeviceCaps(dc, HORZRES), GetDeviceCaps(dc, VERTRES)));
-	memDC.CreateCompatibleDC(&dc);
-	memDC.SelectObject(&drawingBitmap);
-	bitmapInitialized = TRUE;
+	if (!bkgBitmap.m_hObject)
+	{
+		VERIFY(bkgBitmap.CreateCompatibleBitmap(&dc, GetDeviceCaps(dc, HORZRES), GetDeviceCaps(dc, VERTRES)));
+		bkgDC.CreateCompatibleDC(&dc);
+		bkgDC.SelectObject(&bkgBitmap);
+		bitmapInitialized = TRUE;
+	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	// CALCULATE CANVAS SIZE AND SCROLLING AREA
 
 	// Calculate the size of padding for the canvas based on the device's pixel density
-	int xLogPixelsPerInch = GetDeviceCaps(memDC, LOGPIXELSX);
-	int yLogPixelsPerInch = GetDeviceCaps(memDC, LOGPIXELSY);
+	int xLogPixelsPerInch = GetDeviceCaps(dc, LOGPIXELSX);
+	int yLogPixelsPerInch = GetDeviceCaps(dc, LOGPIXELSY);
 	paddingHorizontal = xLogPixelsPerInch / 16;
 	paddingVertical = yLogPixelsPerInch / 16;
 
@@ -176,7 +200,19 @@ void CDrawView::OnInitialUpdate()
 	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
 	canvasSize.cx = clientRect.Width()  - paddingHorizontal * 2 - vScrollBarWidth;
 	canvasSize.cy = clientRect.Height() - paddingVertical   * 2 - hScrollBarHeight;
-	
+
+	//*********************************************************************************************
+	// Initialize the canvas memory DC and bitmap for drawing
+	CDrawDoc* pDoc = GetDocument();
+	CDC& canvasDC = *pDoc->GetCanvasDC();
+	CBitmap& canvasBitmap = pDoc->GetCanvasBitmap();
+
+	VERIFY(canvasBitmap.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
+	canvasDC.CreateCompatibleDC(&dc);
+	canvasDC.SelectObject(&canvasBitmap);
+	canvasDC.FillSolidRect(0, 0, canvasSize.cx, canvasSize.cy, RGB(255, 255, 255)); // White
+	//*********************************************************************************************
+
 	// Set the canvas rectangle to the calculated size and position
 	canvasRect.SetRect(
 		paddingHorizontal,                   // left
@@ -329,28 +365,14 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 		SetCapture();
 
 		CDrawDoc* pDoc = GetDocument();
+		// Get the DC on which to draw
+		CDC& canvasDC = *pDoc->GetCanvasDC();
 
-		// Create appropriate tool based on drawing mode
-		std::shared_ptr<Drawable> currentTool;
-
-		switch (pDoc->GetDrawingTool())
-		{
-		case pen:
-			currentTool = std::make_shared<Pen>(pDoc->GetSizePen(), pDoc->GetForeColor());
-			break;
-		case eraser:
-			currentTool = std::make_shared<Eraser>(pDoc->GetSizeEraser(), pDoc->GetBackColor());
-			break;
-		}
-
-		// Add the new Drawable object to the document's drawable container
-		pDoc->AddObject(currentTool);
-		
-		strokeInProgress = TRUE;
+		// Adjust point to canvas top-left (0, 0) coordinates
+		point.Offset(-paddingHorizontal, -paddingVertical);
 
 		// Let the tool handle the mouse event
-		CDC& memDC = *pDoc->GetMemDC();
-		currentTool->OnLButtonDown(&memDC, point);
+		currentTool->OnLButtonDown(&canvasDC, point, pDoc);
 
 		Invalidate();
 	}  // End if-else
@@ -361,20 +383,22 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 	if (!drawingMode)  // If drawing is not in progress, do nothing.
 		return;
 
-	CDrawDoc* pDoc = GetDocument();
-
-	CPoint scrollPos = GetScrollPosition();
-	point.Offset(scrollPos.x, scrollPos.y);  // Offset the point by the scroll position
-
-	if (GetKeyState(VK_LBUTTON) & 0x8000 && strokeInProgress == TRUE)
+	if (GetKeyState(VK_LBUTTON) & 0x8000)
 		// If the high order bit of return value is set,
 		//  the left mouse button is down.
 	{
-		Drawable& currentTool = pDoc->GetLastObject();
+		CDrawDoc* pDoc = GetDocument();
+		// Get the DC on which to draw
+		CDC& canvasDC = *pDoc->GetCanvasDC();
+
+		CPoint scrollPos = GetScrollPosition();
+		point.Offset(scrollPos.x, scrollPos.y);  // Offset the point by the scroll position
+
+		// Adjust point to canvas top-left (0, 0) coordinates
+		point.Offset(-paddingHorizontal, -paddingVertical);
 
 		// Let the tool handle the mouse event
-		CDC& memDC = *pDoc->GetMemDC();
-		currentTool.OnMouseMove(&memDC, point);
+		currentTool->OnMouseMove(&canvasDC, point, pDoc);
 
 		Invalidate();
 	}
@@ -419,7 +443,7 @@ BOOL CDrawView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 		{
 			// set the custom cursor based on the drawing tool.
 			HINSTANCE hInstance = AfxGetInstanceHandle();
-			switch (GetDocument()->GetDrawingTool())
+			switch (currentTool->GetToolType())
 			{
 			case pen:
 			{
@@ -464,7 +488,7 @@ void CDrawView::OnLButtonUp(UINT nFlags, CPoint point)
 	// Releases the mouse capture from OnLButtonDown.
 	ReleaseCapture();
 
-	strokeInProgress = FALSE;
+	currentTool->OnLButtonUp();
 }
 
 void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
@@ -495,12 +519,11 @@ void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 		pDC->SetViewportExt(clientRect.Width(), clientRect.Height());
 
 		CDrawDoc* pDoc = GetDocument();
-		CDC& memDC = *pDoc->GetMemDC();
 
 		if (resizingMode == TRUE)
 		{
 			// If not drawing, remove the clipping region that is set to canvas only
-			memDC.SelectClipRgn(NULL);
+			bkgDC.SelectClipRgn(NULL);
 		}
 		else if (drawingMode == TRUE)
 		{
@@ -513,7 +536,7 @@ void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 
 			CRgn clipRgn;
 			clipRgn.CreateRectRgnIndirect(&clipRect);
-			memDC.SelectClipRgn(&clipRgn);
+			bkgDC.SelectClipRgn(&clipRgn);
 		}
 	}  // End if-else
 }
@@ -527,76 +550,198 @@ void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM lHint, CObject* /*pHint*/)
 
 	if (lHint == 1)  // Resize handle was moved
 	{
-		// Get current bitmap and its size
-		BITMAP drawingBitmapInfo;
-		CBitmap& drawingBitmap = GetDocument()->GetDrawingBitmap();
-		drawingBitmap.GetBitmap(&drawingBitmapInfo);
-		LONG bmWidth = drawingBitmapInfo.bmWidth;
-		LONG bmHeight = drawingBitmapInfo.bmHeight;
-
-		// Calculate the size of the bitmap needed to hold the new canvas
+		// Calculate the size of the background bitmap needed to hold the new canvas
 		CSize neededBmSize{ trackRect.Width()  + paddingHorizontal * 2 + vScrollBarWidth,
 						    trackRect.Height() + paddingVertical   * 2 + hScrollBarHeight };
 
-		// Save the canvas portion of the current bitmap
+		// First, create a temporary bitmap to hold the old canvas content
 		CBitmap curCanvasBm;
 		VERIFY(curCanvasBm.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
-		CDC tmpDC;
-		tmpDC.CreateCompatibleDC(&dc);
-		CBitmap* pOldCanvasBm = tmpDC.SelectObject(&curCanvasBm);
-		CDC& memDC = *GetDocument()->GetMemDC();
-		tmpDC.BitBlt(0, 0, canvasSize.cx, canvasSize.cy,
-			&memDC, canvasRect.left, canvasRect.top, SRCCOPY);
+		CDC curCanvasDC;
+		VERIFY(curCanvasDC.CreateCompatibleDC(&dc));
+		curCanvasDC.SelectObject(&curCanvasBm);
 
-		CBitmap newBm;
+		// Copy the current canvas bitmap to the temporary bitmap
+		CDC& canvasDC = *GetDocument()->GetCanvasDC();
+		VERIFY(curCanvasDC.BitBlt(0, 0, canvasSize.cx, canvasSize.cy,
+			&canvasDC, 0, 0, SRCCOPY));
+
+		// Get the current background bitmap information
+		BITMAP bkgBmInfo;
+		CBitmap* curBkgBm = bkgDC.GetCurrentBitmap();
+		curBkgBm->GetBitmap(&bkgBmInfo);
+		LONG bkgBmWidth = bkgBmInfo.bmWidth;
+		LONG bkgBmHeight = bkgBmInfo.bmHeight;
+
+		CBitmap newBkgBm;
 
 		// If both width and height of the needed bitmap are larger than the current bitmap size,
-		if (neededBmSize.cx > bmWidth && neededBmSize.cy > bmHeight)
+		if (neededBmSize.cx > bkgBmWidth && neededBmSize.cy > bkgBmHeight)
 		{
 			// create a new bitmap that is both wider and taller.
-			VERIFY(newBm.CreateCompatibleBitmap(&dc, neededBmSize.cx, neededBmSize.cy));
+			VERIFY(newBkgBm.CreateCompatibleBitmap(&dc, neededBmSize.cx, neededBmSize.cy));
 		}
 		// If only the width of the needed bitmap is larger than the current bitmap width,
-		else if (neededBmSize.cx > bmWidth)
+		else if (neededBmSize.cx > bkgBmWidth)
 		{
 			// create a new to bitmap that is wider.
-			VERIFY(newBm.CreateCompatibleBitmap(&dc, neededBmSize.cx, bmHeight));
+			VERIFY(newBkgBm.CreateCompatibleBitmap(&dc, neededBmSize.cx, bkgBmHeight));
 		}
 		// If only height of the needed bitmap is larger than the current bitmap height,
-		else if (neededBmSize.cy > bmHeight)
+		else if (neededBmSize.cy > bkgBmHeight)
 		{
 			// create a new bitmap that is taller.
-			VERIFY(newBm.CreateCompatibleBitmap(&dc, bmWidth, neededBmSize.cy));
+			VERIFY(newBkgBm.CreateCompatibleBitmap(&dc, bkgBmWidth, neededBmSize.cy));
 		}
 		// If we don't need bigger bitmap, but the canvas size has changed,
 		else if (trackRect.Width() != canvasSize.cx || trackRect.Height() != canvasSize.cy)
 		{
 			// create a new bitmap that is the same size as current one.
-			VERIFY(newBm.CreateCompatibleBitmap(&dc, bmWidth, bmHeight));
+			VERIFY(newBkgBm.CreateCompatibleBitmap(&dc, bkgBmWidth, bkgBmHeight));
 		}
 
-		// Select the new bitmap to the memory DC
-		memDC.SelectObject(&newBm);
-
-		// Update the canvas size based on the tracker rectangle
+		// Update the canvas size info based on the tracker rectangle
 		canvasSize.cx = trackRect.Width();
 		canvasSize.cy = trackRect.Height();
 
-		// Fill the new bitmap with background and canvas
-		UpdateClientArea();
+		// Select the new background bitmap to the background DC,
+		bkgDC.SelectObject(&newBkgBm);
+		UpdateClientArea();  // and paint it with backgroun color, canvas shadow etc.
 
-		// Copy the previously saved canvas content to the new canvas.
-		memDC.BitBlt(paddingHorizontal, paddingVertical, canvasSize.cx, canvasSize.cy,
-			&tmpDC, 0, 0, SRCCOPY);
+		// Create a new blank canvas bitmap with the new size
+		CBitmap newCanvasBitmap;
+		VERIFY(newCanvasBitmap.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
+
+		// Select the new canvas bitmap to the canvas DC and paint it
+		canvasDC.SelectObject(&newCanvasBitmap);
+		canvasDC.FillSolidRect(0, 0, canvasSize.cx, canvasSize.cy, RGB(255, 255, 255)); // White
+
+		// Copy the current canvas bitmap to the new canvas bitmap
+		VERIFY(canvasDC.BitBlt(0, 0, canvasSize.cx, canvasSize.cy,
+			&curCanvasDC, 0, 0, SRCCOPY));
 	}
 
 	else  // lHint == 0 -> no resize, just redraw the view
 	{
 		UpdateClientArea();
+		CDC& canvasDC = *GetDocument()->GetCanvasDC();
+		canvasDC.FillSolidRect(0, 0, canvasSize.cx, canvasSize.cy, RGB(255, 255, 255)); // White
+
+		bkgDC.BitBlt(paddingHorizontal, paddingVertical, canvasSize.cx, canvasSize.cy,
+			&canvasDC, 0, 0, SRCCOPY);
 	}
 
 	// Call OnDraw to copy the memory DC to the screen DC
 	Invalidate();
+}
+
+void CDrawView::OnButtonPen()
+{
+	currentTool = std::make_unique<PenTool>(sizePen, foreColor);
+
+	//	Get the size selection gallery
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
+	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
+
+	//	Set icons for pen tool sizes
+	pGallery->SetPalette(IDB_SIZES1234, 104);
+}
+
+void CDrawView::OnButtonEraser()
+{
+	currentTool = std::make_unique<EraserTool>(sizeEraser, backColor);
+
+	//	Get the size selection gallery
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
+	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
+
+	//	Set icons for eraser tool sizes
+	pGallery->SetPalette(IDB_SIZES46810, 104);
+}
+
+void CDrawView::OnUpdateButtonPen(CCmdUI* pCmdUI)
+{
+	if (currentTool->GetToolType() == pen)
+	{
+		pCmdUI->SetCheck(TRUE);
+	}
+	else
+	{
+		pCmdUI->SetCheck(FALSE);
+	}
+}
+
+void CDrawView::OnUpdateButtonEraser(CCmdUI* pCmdUI)
+{
+	if (currentTool->GetToolType() == eraser)
+	{
+		pCmdUI->SetCheck(TRUE);
+	}
+	else
+	{
+		pCmdUI->SetCheck(FALSE);
+	}
+}
+
+void CDrawView::OnGallerySize()
+{
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
+	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
+
+	int index = pGallery->GetSelectedItem();
+
+	const std::vector<int> penSizes = { 1, 2, 3, 4 };
+	const std::vector<int> eraserSizes = { 4, 6, 8, 10 };
+
+	ASSERT(index >= 0 && index < penSizes.size() && index < eraserSizes.size());
+
+	sizePen = penSizes[index];
+	sizeEraser = eraserSizes[index];
+
+	switch (currentTool->GetToolType())
+	{
+	case pen:
+		currentTool->SetSize(sizePen);
+		break;
+	case eraser:
+		currentTool->SetSize(sizeEraser);
+		break;
+	default:
+		ASSERT(FALSE);
+		break;
+	}
+}
+
+void CDrawView::OnForecolor()
+{
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_FORECOLOR, arr);
+	CMFCRibbonColorButton* pColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+
+	foreColor = pColorButton->GetColor();
+
+	// Set the color for the current tool
+	if (currentTool->GetToolType() == pen)  // If the current tool is not an eraser
+	{
+		currentTool->SetColor(foreColor);
+	}
+}
+
+void CDrawView::OnBackcolor()
+{
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_BACKCOLOR, arr);
+	CMFCRibbonColorButton* pColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+
+	backColor = pColorButton->GetColor();
+
+	if (currentTool->GetToolType() == eraser)  // If the current tool is an eraser
+	{
+		currentTool->SetColor(backColor);
+	}
 }
 
 BOOL CDrawView::OnEraseBkgnd(CDC* pDC)
@@ -618,18 +763,21 @@ void CDrawView::UpdateClientArea()
 	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
 
 	// Update the canvas rectangle position
-	canvasRect.right  = paddingHorizontal + canvasSize.cx;
-	canvasRect.bottom = paddingVertical   + canvasSize.cy;
+	canvasRect.SetRect(
+		paddingHorizontal,                   // left
+		paddingVertical,                     // top
+		paddingHorizontal + canvasSize.cx,   // right
+		paddingVertical + canvasSize.cy);    // bottom
 
 	// Update the resize handle rectangle position
 	int handleWidth = paddingHorizontal;
 	int handleHeight = paddingVertical;
-	
+
 	resizeHandleRect.SetRect(
-		canvasRect.right,                  // left
-		canvasRect.bottom,                 // top
-		canvasRect.right + handleWidth,    // right
-		canvasRect.bottom + handleHeight); // bottom
+		canvasRect.right,                   // left
+		canvasRect.bottom,                  // top
+		canvasRect.right  + handleWidth,    // right
+		canvasRect.bottom + handleHeight);  // bottom
 
 	// Calculate the scrollable area accounting for padding and width of scroll bars
 	CSize scrollSize;
@@ -638,18 +786,17 @@ void CDrawView::UpdateClientArea()
 	SetScrollSizes(MM_TEXT, scrollSize);
 
 	////////////////////////////////////////////////////////////////////
-	// DRAWING CANVAS AND BACKGROUND
+	// DRAWING BACKGROUND
 
 	CRect clientRect; GetClientRect(&clientRect);
 
 	// Solve the problem of image not being drawn correctly while scrolling (artifacting).
-	CDC& memDC = *GetDocument()->GetMemDC();
-	CRect clipBoxRect; memDC.GetClipBox(&clipBoxRect);
-	memDC.FillSolidRect(clipBoxRect, RGB(220, 230, 240));  // Same color as area around canvas
+	CRect clipBoxRect; bkgDC.GetClipBox(&clipBoxRect);
+	bkgDC.FillSolidRect(clipBoxRect, RGB(220, 230, 240));  // Same color as area around canvas
 
 	// Draw area around canvas
 	GetClientRect(&clientRect);
-	memDC.FillSolidRect(clientRect, RGB(220, 230, 240));
+	bkgDC.FillSolidRect(clientRect, RGB(220, 230, 240));
 
 	// Draw canvas shadow
 	CRect canvasShadowRect(
@@ -657,25 +804,18 @@ void CDrawView::UpdateClientArea()
 		paddingVertical   * 2,
 		paddingHorizontal * 2 + canvasSize.cx,
 		paddingVertical   * 2 + canvasSize.cy);
-	memDC.FillSolidRect(canvasShadowRect, RGB(210, 220, 230));
-
-	// Draw canvas
-	canvasRect.left   = paddingHorizontal;
-	canvasRect.top    = paddingVertical;
-	canvasRect.right  = paddingHorizontal + canvasSize.cx;
-	canvasRect.bottom = paddingVertical   + canvasSize.cy;
-	memDC.FillSolidRect(canvasRect, RGB(255, 255, 255));
+	bkgDC.FillSolidRect(canvasShadowRect, RGB(210, 220, 230));
 
 	// Draw canvas resize handle
 	CPen handlePen(PS_SOLID, 1, RGB(64, 64, 64));
-	CPen* pOldPen = memDC.SelectObject(&handlePen);
+	CPen* pOldPen = bkgDC.SelectObject(&handlePen);
 
-	memDC.Rectangle(
+	bkgDC.Rectangle(
 		resizeHandleRect.left,
 		resizeHandleRect.top,
 		resizeHandleRect.right,
 		resizeHandleRect.bottom);
 
 	// Cleanup
-	memDC.SelectObject(pOldPen);
+	bkgDC.SelectObject(pOldPen);
 }

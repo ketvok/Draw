@@ -186,6 +186,7 @@
     <ClInclude Include="Draw.h" />
     <ClInclude Include="Drawable.h" />
     <ClInclude Include="DrawDoc.h" />
+    <ClInclude Include="Tool.h" />
     <ClInclude Include="DrawView.h" />
     <ClInclude Include="Eraser.h" />
     <ClInclude Include="framework.h" />
@@ -199,6 +200,7 @@
     <ClCompile Include="Draw.cpp" />
     <ClCompile Include="Drawable.cpp" />
     <ClCompile Include="DrawDoc.cpp" />
+    <ClCompile Include="Tool.cpp" />
     <ClCompile Include="DrawView.cpp" />
     <ClCompile Include="Eraser.cpp" />
     <ClCompile Include="MainFrm.cpp" />

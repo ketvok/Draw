@@ -13,14 +13,13 @@
 //
 
 #pragma once
-
+#include "Tool.h"
 
 class CDrawView : public CScrollView
 {
 // Private data members
 	BOOL drawingMode;
 	BOOL resizingMode;
-	BOOL strokeInProgress;
 	CSize canvasSize;
 	CRect canvasRect;
 	CRect resizeHandleRect;
@@ -28,6 +27,14 @@ class CDrawView : public CScrollView
 	int paddingVertical;
 	BOOL bitmapInitialized;
 	CRect trackRect;
+	COLORREF foreColor;
+	COLORREF backColor;
+	int sizePen;
+	int sizeEraser;
+	int sizeShape;
+	CBitmap bkgBitmap;
+	CDC bkgDC;
+	std::shared_ptr<DrawingTool> currentTool;
 
 protected: // create from serialization only
 	CDrawView() noexcept;
@@ -36,6 +43,10 @@ protected: // create from serialization only
 // Attributes
 public:
 	CDrawDoc* GetDocument() const;
+	COLORREF GetForeColor() const { return foreColor; }
+	COLORREF GetBackColor() const { return backColor; }
+	int GetSizePen() const { return sizePen; }
+	int GetSizeEraser() const { return sizeEraser; }
 
 // Operations
 public:
@@ -76,6 +87,13 @@ public:
 	virtual void OnPrepareDC(CDC* pDC, CPrintInfo* pInfo = NULL);
 	virtual void OnUpdate(CView* /*pSender*/, LPARAM /*lHint*/, CObject* /*pHint*/);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	afx_msg void OnButtonPen();
+	afx_msg void OnButtonEraser();
+	afx_msg void OnUpdateButtonPen(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateButtonEraser(CCmdUI* pCmdUI);
+	afx_msg void OnGallerySize();
+	afx_msg void OnForecolor();
+	afx_msg void OnBackcolor();
 };
 
 #ifndef _DEBUG  // debug version in DrawView.cpp

@@ -36,19 +36,12 @@
 IMPLEMENT_DYNCREATE(CDrawDoc, CDocument)
 
 BEGIN_MESSAGE_MAP(CDrawDoc, CDocument)
-	ON_COMMAND(ID_BUTTON_PEN, &CDrawDoc::OnButtonPen)
-	ON_COMMAND(ID_BUTTON_ERASER, &CDrawDoc::OnButtonEraser)
-	ON_UPDATE_COMMAND_UI(ID_BUTTON_PEN, &CDrawDoc::OnUpdateButtonPen)
-	ON_UPDATE_COMMAND_UI(ID_BUTTON_ERASER, &CDrawDoc::OnUpdateButtonEraser)
-	ON_COMMAND(ID_GALLERY_SIZE, &CDrawDoc::OnGallerySize)
-	ON_COMMAND(ID_FORECOLOR, &CDrawDoc::OnForecolor)
-	ON_COMMAND(ID_BACKCOLOR, &CDrawDoc::OnBackcolor)
 END_MESSAGE_MAP()
 
 
 // CDrawDoc construction/destruction
 
-CDrawDoc::CDrawDoc() noexcept : selectedDrawingTool{ pen }, sizePen{ 1 }, sizeEraser{ 4 }, sizeShape{ 1 }
+CDrawDoc::CDrawDoc() noexcept
 {
 	// TODO: add one-time construction code here
 
@@ -170,100 +163,68 @@ void CDrawDoc::Dump(CDumpContext& dc) const
 
 // CDrawDoc commands
 
-void CDrawDoc::OnButtonPen()
-{
-	selectedDrawingTool = pen;
-	
-	// Get the size selection gallery
-	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
-	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
-	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
-
-	// Set icons for pen tool sizes
-	pGallery->SetPalette(IDB_SIZES1234, 104);
-}
-
-void CDrawDoc::OnButtonEraser()
-{
-	selectedDrawingTool = eraser;
-
-	// Get the size selection gallery
-	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
-	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
-	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
-
-	// Set icons for eraser tool sizes
-	pGallery->SetPalette(IDB_SIZES46810, 104);
-}
-
-void CDrawDoc::OnUpdateButtonPen(CCmdUI* pCmdUI)
-{
-	pCmdUI->SetCheck(selectedDrawingTool == pen ? 1 : 0);
-}
-
-void CDrawDoc::OnUpdateButtonEraser(CCmdUI* pCmdUI)
-{
-	pCmdUI->SetCheck(selectedDrawingTool == eraser ? 1 : 0);
-}
-
-void CDrawDoc::OnGallerySize()
-{
-	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
-	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
-	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
-
-	int index = pGallery->GetSelectedItem();
-
-	switch (index)
-	{
-	case 0:
-		sizePen = 1;
-		sizeEraser = 4;
-		sizeShape = 1;
-		break;
-	case 1:
-		sizePen = 2;
-		sizeEraser = 6;
-		sizeShape = 3;
-		break;
-	case 2:
-		sizePen = 3;
-		sizeEraser = 8;
-		sizeShape = 5;
-		break;
-	case 3:
-		sizePen = 4;
-		sizeEraser = 10;
-		sizeShape = 8;
-		break;
-	}
-}
-
-void CDrawDoc::OnForecolor()
-{
-	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
-	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_FORECOLOR, arr);
-	CMFCRibbonColorButton* pColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
-
-	foreColor = pColorButton->GetColor();
-}
-
-void CDrawDoc::OnBackcolor()
-{
-	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
-	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_BACKCOLOR, arr);
-	CMFCRibbonColorButton* pColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
-
-	backColor = pColorButton->GetColor();
-}
-
 void CDrawDoc::DeleteContents()
 {
 	drawableArr.clear();
-	drawingBitmap.DeleteObject();
-	memDC.DeleteDC();
-	foreColor = RGB(0, 0, 0);  // Black
-	backColor = RGB(255, 255, 255);  // White
+	canvasDC.DeleteDC();
+	canvasBitmap.DeleteObject();
 
 	CDocument::DeleteContents();
+}
+
+BOOL CDrawDoc::OnSaveDocument(LPCTSTR lpszPathName)
+{
+	// Check if the file extension indicates an image format rather than a document
+	CString strPath = lpszPathName;
+	CString strExt = strPath.Right(5).MakeLower();
+
+	if (strExt.Right(4) == ".jpg"  ||
+		strExt.Right(5) == ".jpeg" ||
+		strExt.Right(4) == ".png"  ||
+		strExt.Right(4) == ".bmp"  ||
+		strExt.Right(4) == ".gif")
+	{
+		// This is an image file - save directly using CImage
+		CImage image;
+
+		// Get information about the bitmap
+		BITMAP bmpInfo;
+		//canvasBitmap.GetBitmap(&bmpInfo);
+		CDC& canvasDC = *GetCanvasDC();
+		CBitmap* bm = canvasDC.GetCurrentBitmap();
+		bm->GetBitmap(&bmpInfo);
+
+		// Create an image from the bitmap in memory
+		image.Create(bmpInfo.bmWidth, bmpInfo.bmHeight, bmpInfo.bmBitsPixel);
+
+		// Create a temporary DC
+		CDC tempDC;
+		tempDC.CreateCompatibleDC(&canvasDC);
+
+		// Select the image into the DC
+		HBITMAP hOldBitmap = (HBITMAP)tempDC.SelectObject(image);
+
+		// Copy canvas area to the image
+		tempDC.BitBlt(0, 0, bmpInfo.bmWidth, bmpInfo.bmHeight,
+			&canvasDC, 0, 0, SRCCOPY);
+
+		// Clean up
+		tempDC.SelectObject(hOldBitmap);
+
+		// Save the image based on file extension
+		HRESULT hr;
+		if (strExt.Right(4) == ".png")
+			hr = image.Save(lpszPathName, Gdiplus::ImageFormatPNG);
+		else if (strExt.Right(4) == ".jpg" || strExt.Right(5) == ".jpeg")
+			hr = image.Save(lpszPathName, Gdiplus::ImageFormatJPEG);
+		else if (strExt.Right(4) == ".gif")
+			hr = image.Save(lpszPathName, Gdiplus::ImageFormatGIF);
+		else  // strExt == .bmp
+			hr = image.Save(lpszPathName, Gdiplus::ImageFormatBMP);
+
+		return SUCCEEDED(hr);
+	}
+
+
+	return CDocument::OnSaveDocument(lpszPathName);
 }

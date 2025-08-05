@@ -12,32 +12,17 @@
 // DrawDoc.h : interface of the CDrawDoc class
 //
 
-
 #pragma once
 #include "Drawable.h"
 #include <memory>
 #include <vector>
 
-enum drawingTool {
-	pen,
-	eraser,
-	ellipse,
-	rectangle,
-	roundRectangle
-};
-
 class CDrawDoc : public CDocument
 {
 // Private data members
 	std::vector<std::shared_ptr<Drawable>> drawableArr;
-	CBitmap drawingBitmap;
-	CDC memDC;
-	drawingTool selectedDrawingTool;
-	int sizePen;
-	int sizeEraser;
-	int sizeShape;
-	COLORREF foreColor = RGB(0, 0, 0);
-	COLORREF backColor = RGB(255, 255, 255);
+	CBitmap canvasBitmap;
+	CDC canvasDC;
 
 protected: // create from serialization only
 	CDrawDoc() noexcept;
@@ -45,17 +30,11 @@ protected: // create from serialization only
 
 // Attributes
 public:
-	drawingTool GetDrawingTool() const { return selectedDrawingTool; };
 	Drawable& GetLastObject() { return *drawableArr.back(); };
 	void AddObject(std::shared_ptr<Drawable> pObject);
 	void DrawAll(CDC* pDC) const;
-	const int GetSizePen() const { return sizePen; };
-	const int GetSizeEraser() const { return sizeEraser; };
-	const int GetSizeShape() const { return sizeShape; };
-	const COLORREF GetForeColor() const { return foreColor; };
-	const COLORREF GetBackColor() const { return backColor; };
-	CBitmap& GetDrawingBitmap() { return drawingBitmap; }
-	CDC* GetMemDC() { return &memDC; }
+	CBitmap& GetCanvasBitmap() { return canvasBitmap; }
+	CDC* GetCanvasDC() { return &canvasDC; }
 
 // Operations
 public:
@@ -88,12 +67,6 @@ protected:
 	void SetSearchContent(const CString& value);
 #endif // SHARED_HANDLERS
 public:
-	afx_msg void OnButtonPen();
-	afx_msg void OnButtonEraser();
-	afx_msg void OnUpdateButtonPen(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateButtonEraser(CCmdUI* pCmdUI);
-	afx_msg void OnGallerySize();
-	afx_msg void OnForecolor();
-	afx_msg void OnBackcolor();
 	virtual void DeleteContents();
+	virtual BOOL OnSaveDocument(LPCTSTR lpszPathName);
 };

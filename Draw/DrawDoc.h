@@ -34,7 +34,6 @@ protected: // create from serialization only
 
 // Attributes
 public:
-	Drawable& GetLastObject() { return *drawableArr.back(); };
 	void AddObject(std::shared_ptr<Drawable> pObject);
 	void DrawAll(CDC* pDC) const;
 	

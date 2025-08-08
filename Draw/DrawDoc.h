@@ -21,8 +21,12 @@ class CDrawDoc : public CDocument
 {
 // Private data members
 	std::vector<std::shared_ptr<Drawable>> drawableArr;
+	
 	CBitmap canvasBitmap;
 	CDC canvasDC;
+	CSize canvasSize;
+	CImage canvasImage;
+	BOOL newImageLoaded;
 
 protected: // create from serialization only
 	CDrawDoc() noexcept;
@@ -33,8 +37,14 @@ public:
 	Drawable& GetLastObject() { return *drawableArr.back(); };
 	void AddObject(std::shared_ptr<Drawable> pObject);
 	void DrawAll(CDC* pDC) const;
+	
 	CBitmap& GetCanvasBitmap() { return canvasBitmap; }
 	CDC* GetCanvasDC() { return &canvasDC; }
+	const CSize& GetCanvasSize() const { return canvasSize; }
+	void SetCanvasSize(const CSize& size) { canvasSize = size; }
+	const CImage& GetCanvasImage() { return canvasImage; }
+	BOOL GetNewImageLoaded() { return newImageLoaded; }
+	void SetNewImageLoaded(BOOL value) { newImageLoaded = value; }
 
 // Operations
 public:
@@ -68,5 +78,20 @@ protected:
 #endif // SHARED_HANDLERS
 public:
 	virtual void DeleteContents();
+	/// <summary>
+	/// Undocumented CDocument implementation helper.</summary>
+	/// <param name="lpszPathName">Full path of the file to save. If this is NULL the default
+	/// implementation will prompt the user for a filename and path using the File-Save-As common
+	/// dialog.</param>
+	/// <param name="bReplace">If TRUE it will replace an existing file, if FALSE it won't.</param>
+	/// <returns>
+	/// TRUE if the document was saved successfully; otherwise FALSE.</returns>
+	virtual BOOL DoSave(LPCTSTR lpszPathName, BOOL bReplace = TRUE);
 	virtual BOOL OnSaveDocument(LPCTSTR lpszPathName);
+	/// <summary>
+	/// TN022: The recommended way to customize this is to replace the default implementation with
+	/// your own FileOpen dialog, and call CWinApp::OpenDocumentFile with the document's file or
+	/// path name.</summary>
+	afx_msg void OnFileOpen();
+	virtual BOOL OnOpenDocument(LPCTSTR lpszPathName);
 };

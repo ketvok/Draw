@@ -15,6 +15,8 @@ void PenTool::OnLButtonDown(CDC* pDC, const CPoint& point, CDrawDoc* pDoc)
     // Add the pen to the document's drawable array
     pDoc->AddObject(currentStroke);
 
+	pDoc->SetModifiedFlag(TRUE);
+
 	// Select a pen with the current size and color
 	CPen* pOldPen = pDC->SelectObject(&currentStroke->GetPen());
 	pDC->SelectObject(currentStroke.get());
@@ -103,6 +105,11 @@ void EraserTool::OnLButtonDown(CDC* pDC, const CPoint& point, CDrawDoc* pDoc)
 	currentStroke = std::make_shared<Eraser>(eraserSize, eraserColor);
 	currentStroke->AddPoint(point);
 	currentStroke->SetPrevPoint(point);
+
+	// Add the eraser to the document's drawable array
+	pDoc->AddObject(currentStroke);
+
+	pDoc->SetModifiedFlag(TRUE);
 	
 	// Select a pen and brush with the current size and color
 	CPen* pOldPen = pDC->SelectObject(&currentStroke->GetPen());

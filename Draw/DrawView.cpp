@@ -62,7 +62,6 @@ END_MESSAGE_MAP()
 CDrawView::CDrawView() noexcept :
 	drawingMode{ TRUE },
 	resizingMode{ FALSE },
-	canvasSize{ 0, 0 },
 	canvasRect{ 0, 0, 0, 0 },
 	resizeHandleRect{ 0, 0, 0, 0 },
 	paddingHorizontal { 0 },
@@ -104,6 +103,7 @@ void CDrawView::OnDraw(CDC* pDC)
         return;
 
 	CDC& canvasDC = *pDoc->GetCanvasDC();
+	const CSize& canvasSize = pDoc->GetCanvasSize();
 
 	////////////////
 	// NOT PRINTING
@@ -154,6 +154,7 @@ void CDrawView::OnDraw(CDC* pDC)
 		int viewportHeight = static_cast<int>(std::round(canvasSize.cy * scaleFactor));
 
 		// Copy the canvas DC to the printing DC
+		pDC->SetStretchBltMode(STRETCH_DELETESCANS);  // FIX for the scaling artifacts caused by StretchDIBits
 		VERIFY(pDC->StretchBlt(0, 0, viewportWidth, viewportHeight,
 			&canvasDC, 0, 0, canvasSize.cx, canvasSize.cy, SRCCOPY));
 	}
@@ -161,20 +162,43 @@ void CDrawView::OnDraw(CDC* pDC)
 
 void CDrawView::OnInitialUpdate()
 {
+	CDrawDoc* pDoc = GetDocument();
 	CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
-	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
 
-	// Reset foreground color to default value
-	pMainFrame->m_wndRibbonBar.GetElementsByID(ID_FORECOLOR, arr);
-	CMFCRibbonColorButton* pForeColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
-	pForeColorButton->SetColor(RGB(0, 0, 0));
+	if (!pDoc->GetNewImageLoaded())
+	{
+		//*********************************************************************************************
+	    // Reset colors to default values
 
-	// Reset background color to default value
-	pMainFrame->m_wndRibbonBar.GetElementsByID(ID_BACKCOLOR, arr);
-	CMFCRibbonColorButton* pBackColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
-	pBackColorButton->SetColor(RGB(255, 255, 255));
+		CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+		pMainFrame->m_wndRibbonBar.GetElementsByID(ID_FORECOLOR, arr);
+		CMFCRibbonColorButton* pForeColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+		pForeColorButton->SetColor(RGB(0, 0, 0));
 
-	// Initialize the memory DC and bitmap for drawing
+		pMainFrame->m_wndRibbonBar.GetElementsByID(ID_BACKCOLOR, arr);
+		CMFCRibbonColorButton* pBackColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+		pBackColorButton->SetColor(RGB(255, 255, 255));
+
+		foreColor = RGB(0, 0, 0);
+		backColor = RGB(255, 255, 255);
+
+		switch (currentTool->GetToolType())
+		{
+		case pen:
+			currentTool->SetColor(foreColor);
+			break;
+		case eraser:
+			currentTool->SetColor(backColor);
+			break;
+		default:
+			ASSERT(FALSE);
+			break;
+		}
+		//*********************************************************************************************
+	}
+
+	//*************************************************************************************************
+	// Initialize background DC and bitmap
 	CClientDC dc(this);
 	if (!bkgBitmap.m_hObject)
 	{
@@ -183,37 +207,30 @@ void CDrawView::OnInitialUpdate()
 		bkgDC.SelectObject(&bkgBitmap);
 		bitmapInitialized = TRUE;
 	}
+	//*************************************************************************************************
+	
+	// ************************************************************************************************
+	// Initialize the canvas DC and bitmap
+	CDC& canvasDC = *pDoc->GetCanvasDC();
+	CBitmap& canvasBitmap = pDoc->GetCanvasBitmap();
 
-	//////////////////////////////////////////////////////////////////////////////////////////////////
-	// CALCULATE CANVAS SIZE AND SCROLLING AREA
+	const CSize& canvasSize = pDoc->GetCanvasSize();
+	if (!canvasBitmap.m_hObject && !canvasDC.m_hDC)
+	{
+		VERIFY(canvasBitmap.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
+		canvasDC.CreateCompatibleDC(&dc);
+		canvasDC.SelectObject(&canvasBitmap);
+		canvasDC.FillSolidRect(0, 0, canvasSize.cx, canvasSize.cy, RGB(255, 255, 255)); // White
+	}
+	//*************************************************************************************************
 
-	// Calculate the size of padding for the canvas based on the device's pixel density
+	// Calculate the size of canvas padding based on the device's pixel density
 	int xLogPixelsPerInch = GetDeviceCaps(dc, LOGPIXELSX);
 	int yLogPixelsPerInch = GetDeviceCaps(dc, LOGPIXELSY);
 	paddingHorizontal = xLogPixelsPerInch / 16;
 	paddingVertical = yLogPixelsPerInch / 16;
 
-	// Calculate the size of the canvas based on the client area size, making sure it does not get
-	// obstructed by the scroll bars
-	CRect clientRect; GetClientRect(&clientRect);
-	int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
-	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
-	canvasSize.cx = clientRect.Width()  - paddingHorizontal * 2 - vScrollBarWidth;
-	canvasSize.cy = clientRect.Height() - paddingVertical   * 2 - hScrollBarHeight;
-
-	//*********************************************************************************************
-	// Initialize the canvas memory DC and bitmap for drawing
-	CDrawDoc* pDoc = GetDocument();
-	CDC& canvasDC = *pDoc->GetCanvasDC();
-	CBitmap& canvasBitmap = pDoc->GetCanvasBitmap();
-
-	VERIFY(canvasBitmap.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
-	canvasDC.CreateCompatibleDC(&dc);
-	canvasDC.SelectObject(&canvasBitmap);
-	canvasDC.FillSolidRect(0, 0, canvasSize.cx, canvasSize.cy, RGB(255, 255, 255)); // White
-	//*********************************************************************************************
-
-	// Set the canvas rectangle to the calculated size and position
+	// Set the canvas rectangle coordinates, accounting for padding
 	canvasRect.SetRect(
 		paddingHorizontal,                   // left
 		paddingVertical,                     // top
@@ -222,17 +239,19 @@ void CDrawView::OnInitialUpdate()
 	
 	trackRect = canvasRect;
 
-	// Calculate the scrollable area accounting for padding and width of scroll bars
+	// Set the scrollable area, accounting for padding and width of scroll bars
+	int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
+	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
 	CSize scrollSize;
 	scrollSize.cx = canvasSize.cx + paddingHorizontal * 2 + vScrollBarWidth;
 	scrollSize.cy = canvasSize.cy + paddingVertical * 2 + hScrollBarHeight;
 	SetScrollSizes(MM_TEXT, scrollSize);
 
-	CScrollView::OnInitialUpdate();
+	CScrollView::OnInitialUpdate();  // Calls OnUpdate
 
-	//Adjusts the layout of all items in the ribbon bar and parent window and redraws the whole
-	//window. This is needed to instantly update the ribbon on File>New to reflect changes in
-	//color buttons. Must be here at the bottom, otherwise - error.
+	// Adjusts the layout of all items in the ribbon bar and parent window and redraws the whole
+	// window. This is needed to instantly update the ribbon on File>New to reflect changes in
+	// color buttons. Must be here at the bottom, otherwise - error.
 	pMainFrame->m_wndRibbonBar.ForceRecalcLayout();
 }
 
@@ -325,6 +344,8 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 	// Offset the reize handle rectagle by the scroll position
 	CRect adjustedResizeHandleRect = resizeHandleRect;
 	adjustedResizeHandleRect.OffsetRect(-scrollPos.x, -scrollPos.y);
+
+	CDrawDoc* pDoc = GetDocument();
 	
 	// Clicked inside the resize handle
 	if (adjustedResizeHandleRect.PtInRect(point))
@@ -339,17 +360,19 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 		CPoint startPoint(canvasRect.left, canvasRect.top);
 		startPoint.Offset(-scrollPos.x, -scrollPos.y);
 
-		if (rectTracker.TrackRubberBand(this, startPoint, FALSE))
+		if (rectTracker.TrackRubberBand(this, startPoint, FALSE)) // The mouse has moved and the rectangle is not empty
 		{
 			// Get the tracker rectangle in client coordinates
 			trackRect = rectTracker.m_rect;
 
-			resizingMode = FALSE;
-			drawingMode = TRUE;
+			pDoc->SetModifiedFlag(TRUE);
 
 			// Update the scroll sizes and redraw the view
-			GetDocument()->UpdateAllViews(NULL, 1, NULL);
+			pDoc->UpdateAllViews(NULL, 1, NULL);
 		}
+
+		resizingMode = FALSE;
+		drawingMode = TRUE;
 	}
 	// Clicked inside the canvas
 	else
@@ -364,7 +387,6 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 
 		SetCapture();
 
-		CDrawDoc* pDoc = GetDocument();
 		// Get the DC on which to draw
 		CDC& canvasDC = *pDoc->GetCanvasDC();
 
@@ -518,8 +540,6 @@ void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 		pDC->SetViewportOrg(0, 0);
 		pDC->SetViewportExt(clientRect.Width(), clientRect.Height());
 
-		CDrawDoc* pDoc = GetDocument();
-
 		if (resizingMode == TRUE)
 		{
 			// If not drawing, remove the clipping region that is set to canvas only
@@ -527,6 +547,8 @@ void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 		}
 		else if (drawingMode == TRUE)
 		{
+			const CSize& canvasSize = GetDocument()->GetCanvasSize();
+
 			// If drawing, set the clipping region to the canvas rectangle
 			CRect clipRect(
 				paddingHorizontal,                   // left
@@ -544,6 +566,12 @@ void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM lHint, CObject* /*pHint*/)
 {
 	CClientDC dc(this);
+	CDrawDoc* pDoc = GetDocument();
+
+	const CSize& canvasSize = pDoc->GetCanvasSize();
+
+	CDC& canvasDC = *pDoc->GetCanvasDC();
+	CBitmap& canvasBitmap = pDoc->GetCanvasBitmap();
 
 	int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
 	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
@@ -555,15 +583,14 @@ void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM lHint, CObject* /*pHint*/)
 						    trackRect.Height() + paddingVertical   * 2 + hScrollBarHeight };
 
 		// First, create a temporary bitmap to hold the old canvas content
-		CBitmap curCanvasBm;
-		VERIFY(curCanvasBm.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
-		CDC curCanvasDC;
-		VERIFY(curCanvasDC.CreateCompatibleDC(&dc));
-		curCanvasDC.SelectObject(&curCanvasBm);
+		CBitmap tmpCanvasBm;
+		VERIFY(tmpCanvasBm.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
+		CDC tmpCanvasDC;
+		VERIFY(tmpCanvasDC.CreateCompatibleDC(&dc));
+		tmpCanvasDC.SelectObject(&tmpCanvasBm);
 
 		// Copy the current canvas bitmap to the temporary bitmap
-		CDC& canvasDC = *GetDocument()->GetCanvasDC();
-		VERIFY(curCanvasDC.BitBlt(0, 0, canvasSize.cx, canvasSize.cy,
+		VERIFY(tmpCanvasDC.BitBlt(0, 0, canvasSize.cx, canvasSize.cy,
 			&canvasDC, 0, 0, SRCCOPY));
 
 		// Get the current background bitmap information
@@ -601,16 +628,26 @@ void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM lHint, CObject* /*pHint*/)
 		}
 
 		// Update the canvas size info based on the tracker rectangle
-		canvasSize.cx = trackRect.Width();
-		canvasSize.cy = trackRect.Height();
+		pDoc->SetCanvasSize(CSize(
+			trackRect.Width(), trackRect.Height()));
 
-		// Select the new background bitmap to the background DC,
-		bkgDC.SelectObject(&newBkgBm);
-		UpdateClientArea();  // and paint it with backgroun color, canvas shadow etc.
+		bkgDC.DeleteDC();
+		bkgBitmap.DeleteObject();
 
-		// Create a new blank canvas bitmap with the new size
-		CBitmap newCanvasBitmap;
-		VERIFY(newCanvasBitmap.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
+		bkgDC.CreateCompatibleDC(&dc);
+		bkgBitmap.Attach(newBkgBm.Detach());  // Transfer ownership to member variable
+
+		bkgDC.SelectObject(&bkgBitmap);
+		UpdateClientArea();  // Draw background elements (shadow, handle, etc.)
+
+		canvasDC.DeleteDC();
+		canvasBitmap.DeleteObject();
+
+		canvasDC.CreateCompatibleDC(&dc);
+
+		// Create a new blank canvas bitmap with the new calculated size
+        CBitmap newCanvasBitmap;
+        VERIFY(newCanvasBitmap.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
 
 		// Select the new canvas bitmap to the canvas DC and paint it
 		canvasDC.SelectObject(&newCanvasBitmap);
@@ -618,14 +655,77 @@ void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM lHint, CObject* /*pHint*/)
 
 		// Copy the current canvas bitmap to the new canvas bitmap
 		VERIFY(canvasDC.BitBlt(0, 0, canvasSize.cx, canvasSize.cy,
-			&curCanvasDC, 0, 0, SRCCOPY));
+			&tmpCanvasDC, 0, 0, SRCCOPY));
+
+		canvasBitmap.Attach(newCanvasBitmap.Detach());  // Transfer ownership to member variable
+		canvasDC.SelectObject(&canvasBitmap);  // Select the new bitmap into the DC
+
+		tmpCanvasDC.DeleteDC();
+		tmpCanvasBm.DeleteObject();
 	}
 
-	else  // lHint == 0 -> no resize, just redraw the view
+ 	else if (pDoc->GetNewImageLoaded() == TRUE)  // New image was loaded
+	{
+		pDoc->SetNewImageLoaded(FALSE);  // Reset the flag
+
+		const CImage& canvasImage = pDoc->GetCanvasImage();
+		if (canvasImage)
+		{
+			// If the canvas image is loaded, copy it to the canvas DC
+			canvasImage.BitBlt(canvasDC, 0, 0, canvasSize.cx, canvasSize.cy, 0, 0, SRCCOPY);
+		}
+
+		// Calculate the size of the background bitmap needed to hold the new canvas
+		CSize neededBmSize{ canvasSize.cx + paddingHorizontal * 2 + vScrollBarWidth,
+							canvasSize.cy + paddingVertical * 2 + hScrollBarHeight };
+
+		// Get the current background bitmap information
+		BITMAP bkgBmInfo;
+		CBitmap* curBkgBm = bkgDC.GetCurrentBitmap();
+		curBkgBm->GetBitmap(&bkgBmInfo);
+		LONG bkgBmWidth = bkgBmInfo.bmWidth;
+		LONG bkgBmHeight = bkgBmInfo.bmHeight;
+
+		CBitmap newBkgBm;
+
+		// If both width and height of the needed bitmap are larger than the current bitmap size,
+		if (neededBmSize.cx > bkgBmWidth && neededBmSize.cy > bkgBmHeight)
+		{
+			// create a new bitmap that is both wider and taller.
+			VERIFY(newBkgBm.CreateCompatibleBitmap(&dc, neededBmSize.cx, neededBmSize.cy));
+		}
+		// If only the width of the needed bitmap is larger than the current bitmap width,
+		else if (neededBmSize.cx > bkgBmWidth)
+		{
+			// create a new to bitmap that is wider.
+			VERIFY(newBkgBm.CreateCompatibleBitmap(&dc, neededBmSize.cx, bkgBmHeight));
+		}
+		// If only height of the needed bitmap is larger than the current bitmap height,
+		else if (neededBmSize.cy > bkgBmHeight)
+		{
+			// create a new bitmap that is taller.
+			VERIFY(newBkgBm.CreateCompatibleBitmap(&dc, bkgBmWidth, neededBmSize.cy));
+		}
+		// If we don't need bigger bitmap
+		else
+		{
+			// create a new background bitmap that is the same size as current one.
+			VERIFY(newBkgBm.CreateCompatibleBitmap(&dc, bkgBmWidth, bkgBmHeight));
+		}
+
+		bkgDC.DeleteDC();
+		bkgBitmap.DeleteObject();
+
+		bkgDC.CreateCompatibleDC(&dc);
+		bkgBitmap.Attach(newBkgBm.Detach());  // Transfer ownership to member variable
+
+		bkgDC.SelectObject(&bkgBitmap);
+		UpdateClientArea();  // Draw background elements (shadow, handle, etc.)
+	}
+
+	else  // lHint == 0 -> just redraw the view
 	{
 		UpdateClientArea();
-		CDC& canvasDC = *GetDocument()->GetCanvasDC();
-		canvasDC.FillSolidRect(0, 0, canvasSize.cx, canvasSize.cy, RGB(255, 255, 255)); // White
 
 		bkgDC.BitBlt(paddingHorizontal, paddingVertical, canvasSize.cx, canvasSize.cy,
 			&canvasDC, 0, 0, SRCCOPY);
@@ -721,10 +821,18 @@ void CDrawView::OnForecolor()
 	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_FORECOLOR, arr);
 	CMFCRibbonColorButton* pColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
 
-	foreColor = pColorButton->GetColor();
+	COLORREF selectedColor = pColorButton->GetColor();
 
-	// Set the color for the current tool
-	if (currentTool->GetToolType() == pen)  // If the current tool is not an eraser
+	if (selectedColor == CLR_INVALID)  // CLR_INVALID == 0xFFFFFFFF == 4294967295
+	{
+		foreColor = pColorButton->GetAutomaticColor();
+	}
+	else
+	{
+		foreColor = selectedColor;
+	}
+
+	if (currentTool->GetToolType() == pen)
 	{
 		currentTool->SetColor(foreColor);
 	}
@@ -736,9 +844,18 @@ void CDrawView::OnBackcolor()
 	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_BACKCOLOR, arr);
 	CMFCRibbonColorButton* pColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
 
-	backColor = pColorButton->GetColor();
+	COLORREF selectedColor = pColorButton->GetColor();
 
-	if (currentTool->GetToolType() == eraser)  // If the current tool is an eraser
+	if (selectedColor == CLR_INVALID)  // CLR_INVALID == 0xFFFFFFFF == 4294967295
+	{
+		backColor = pColorButton->GetAutomaticColor();
+	}
+	else
+	{
+		backColor = selectedColor;
+	}
+
+	if (currentTool->GetToolType() == eraser)
 	{
 		currentTool->SetColor(backColor);
 	}
@@ -757,10 +874,12 @@ BOOL CDrawView::OnEraseBkgnd(CDC* pDC)
 void CDrawView::UpdateClientArea()
 {
 	////////////////////////////////////////////////////////////////////
-	// CALCULATIG AN SETTING SIZES AND SCROLLING
+	// CALCULATIG AND SETTING SIZES AND SCROLLING
 
 	int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
 	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);
+
+	const CSize& canvasSize = GetDocument()->GetCanvasSize();
 
 	// Update the canvas rectangle position
 	canvasRect.SetRect(

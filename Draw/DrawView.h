@@ -20,7 +20,6 @@ class CDrawView : public CScrollView
 // Private data members
 	BOOL drawingMode;
 	BOOL resizingMode;
-	CSize canvasSize;
 	CRect canvasRect;
 	CRect resizeHandleRect;
 	int paddingHorizontal;
@@ -32,8 +31,8 @@ class CDrawView : public CScrollView
 	int sizePen;
 	int sizeEraser;
 	int sizeShape;
-	CBitmap bkgBitmap;
 	CDC bkgDC;
+	CBitmap bkgBitmap;
 	std::shared_ptr<DrawingTool> currentTool;
 
 protected: // create from serialization only

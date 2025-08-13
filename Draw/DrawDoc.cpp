@@ -65,24 +65,6 @@ BOOL CDrawDoc::OnNewDocument()
 	return TRUE;
 }
 
-void CDrawDoc::AddObject(std::shared_ptr<Drawable> pObject)
-{
-	drawableArr.push_back(pObject);
-
-	SetModifiedFlag(TRUE);
-}
-
-void CDrawDoc::DrawAll(CDC* pDC) const
-{
-	for (int i = 0; i < drawableArr.size(); ++i)
-	{
-		drawableArr[i]->DrawYourself(pDC);
-	}
-}
-
-
-
-
 // CDrawDoc serialization
 
 void CDrawDoc::Serialize(CArchive& ar)
@@ -170,7 +152,6 @@ void CDrawDoc::Dump(CDumpContext& dc) const
 
 void CDrawDoc::DeleteContents()
 {
-	drawableArr.clear();
 	canvasDC.DeleteDC();  // Delete DC first, then delete bitmap, because
 	canvasBitmap.DeleteObject();  // deleting bitmap while selected into DC will fail.
 	canvasImage.Destroy();  // Destroy the image object
@@ -243,7 +224,6 @@ BOOL CDrawDoc::OnSaveDocument(LPCTSTR lpszPathName)
 {
 	// Get information about the bitmap
 	BITMAP bmpInfo;
-	//canvasBitmap.GetBitmap(&bmpInfo);
 	CDC& canvasDC = *GetCanvasDC();
 	CBitmap* bm = canvasDC.GetCurrentBitmap();
 	bm->GetBitmap(&bmpInfo);

@@ -1,26 +1,38 @@
 #include "pch.h"
 #include "Tool.h"
+#include "PenTool.h"
+#include "EraserTool.h"
+#include <stdexcept>
+#include <vector>
+
+// Factory
+std::unique_ptr<DrawingTool> CreateTool(int toolType, int size, COLORREF color)
+{
+	switch (toolType)
+	{
+	case PEN_TOOL:
+		return std::make_unique<PenTool>(size, color);
+	case ERASER_TOOL:
+		return std::make_unique<EraserTool>(size, color);
+	default:
+		throw std::invalid_argument("Invalid tool type");
+	}
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // PenTool class implementation
 
-PenTool::PenTool(int size, COLORREF color) : currentStroke{ nullptr }, penSize{ size }, penColor{ color } {}
-
-void PenTool::OnLButtonDown(CDC* pDC, const CPoint& point, CDrawDoc* pDoc)
+PenTool::PenTool(int size, COLORREF color) : strokeInProgress{ FALSE }, penColor{ color }
 {
-    currentStroke = std::make_shared<Pen>(penSize, penColor);
-    currentStroke->AddPoint(point);
-    currentStroke->SetPrevPoint(point);
-    
-    // Add the pen to the document's drawable array
-    pDoc->AddObject(currentStroke);
+	SetSizeByIndex(size);
+}
 
-	pDoc->SetModifiedFlag(TRUE);
+void PenTool::OnLButtonDown(CDC* pDC, const CPoint& point)
+{
+	strokeInProgress = TRUE;
 
-	// Select a pen with the current size and color
-	CPen* pOldPen = pDC->SelectObject(&currentStroke->GetPen());
-	pDC->SelectObject(currentStroke.get());
-
+	CPen pen{ PS_SOLID, penSize, penColor };
+	CPen* pOldPen = pDC->SelectObject(&pen);
 
 	// For pen sizes >= 5, MoveTo/LineTo produce good results for drawing
 	// a dot, but for smaller sizes I do it manually for nicer results.
@@ -61,29 +73,29 @@ void PenTool::OnLButtonDown(CDC* pDC, const CPoint& point, CDrawDoc* pDoc)
 		pDC->LineTo(point.x, point.y);
 	}
 
+	// Set the current point as previous
+	prevPoint = point;
+
 	// Cleanup
 	pDC->SelectObject(pOldPen);
 }
 
-void PenTool::OnMouseMove(CDC* pDC, const CPoint& point, CDrawDoc* pDoc)
+void PenTool::OnMouseMove(CDC* pDC, const CPoint& point)
 {
-	if (!currentStroke)
+	if (strokeInProgress == FALSE)
 	{
 		return;  // If stroke is not in progress or current stroke is null, do nothing
 	}
 
-	// Add current point to container of points
-	currentStroke->AddPoint(point);
-
-	// Select a pen with the current size and color
-	CPen* pOldPen = pDC->SelectObject(&currentStroke->GetPen());
+	CPen pen{ PS_SOLID, penSize, penColor };
+	CPen* pOldPen = pDC->SelectObject(&pen);
 
 	// Draw a line from previous point to the current point
-	pDC->MoveTo(currentStroke->GetPrevPoint());
+	pDC->MoveTo(prevPoint);
 	pDC->LineTo(point);
 
 	// Set the current point as previous
-	currentStroke->SetPrevPoint(point);
+	prevPoint = point;
 
 	// Cleanup
 	pDC->SelectObject(pOldPen);
@@ -91,29 +103,35 @@ void PenTool::OnMouseMove(CDC* pDC, const CPoint& point, CDrawDoc* pDoc)
 
 void PenTool::OnLButtonUp()
 {
-	currentStroke = nullptr;  // End the stroke
+	strokeInProgress = FALSE;  // End the stroke
+}
+
+void PenTool::SetSizeByIndex(int index)
+{
+	// Convert the index to the pen size
+	std::vector<int> penSizes{ 1, 2, 3, 4 };
+	ASSERT(index >= 0 && index < penSizes.size());
+	penSize = penSizes[index];
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // EraserTool class implementation
 
-EraserTool::EraserTool(int size, COLORREF color) : currentStroke{ nullptr }, eraserSize{ size }, eraserColor{ color } {}
-
-void EraserTool::OnLButtonDown(CDC* pDC, const CPoint& point, CDrawDoc* pDoc)
+EraserTool::EraserTool(int size, COLORREF color) : strokeInProgress{ FALSE }, eraserColor{ color }
 {
-	currentStroke = std::make_shared<Eraser>(eraserSize, eraserColor);
-	currentStroke->AddPoint(point);
-	currentStroke->SetPrevPoint(point);
+	SetSizeByIndex(size);
+}
 
-	// Add the eraser to the document's drawable array
-	pDoc->AddObject(currentStroke);
+void EraserTool::OnLButtonDown(CDC* pDC, const CPoint& point)
+{
+	strokeInProgress = TRUE;
 
-	pDoc->SetModifiedFlag(TRUE);
-	
 	// Select a pen and brush with the current size and color
-	CPen* pOldPen = pDC->SelectObject(&currentStroke->GetPen());
-	CBrush* pOldBrush = pDC->SelectObject(&currentStroke->GetBrush());
+	CPen pen{ PS_SOLID, eraserSize, eraserColor };
+	CPen* pOldPen = pDC->SelectObject(&pen);
+	CBrush brush{ eraserColor };
+	CBrush* pOldBrush = pDC->SelectObject(&brush);
 	
 	// Draw a rectangle at the current point with the size of the eraser
 	Rectangle(
@@ -122,27 +140,29 @@ void EraserTool::OnLButtonDown(CDC* pDC, const CPoint& point, CDrawDoc* pDoc)
 		point.y - eraserSize / 2,   // top
 		point.x + eraserSize / 2,   // right
 		point.y + eraserSize / 2);  // bottom
-	
+
+	// Set the current point as previous
+	prevPoint = point;
+
 	// Cleanup
 	pDC->SelectObject(pOldPen);
 	pDC->SelectObject(pOldBrush);
 }
 
-void EraserTool::OnMouseMove(CDC* pDC, const CPoint& point, CDrawDoc* pDoc)
+void EraserTool::OnMouseMove(CDC* pDC, const CPoint& point)
 {
-	if (!currentStroke)
+	if (strokeInProgress == FALSE)
 	{
 		return;  // If stroke is not in progress or current stroke is null, do nothing
 	}
-
-	currentStroke->AddPoint(point);  // Add current point to container of points
 	
-	// Select a pen and brush with the background color
-	CPen* pOldPen = pDC->SelectObject(&currentStroke->GetPen());
-	CBrush* pOldBrush = pDC->SelectObject(&currentStroke->GetBrush());
+	// Select a pen and brush with the current size and color
+	CPen pen{ PS_SOLID, eraserSize, eraserColor };
+	CPen* pOldPen = pDC->SelectObject(&pen);
+	CBrush brush{ eraserColor };
+	CBrush* pOldBrush = pDC->SelectObject(&brush);
 	
 	// Calculate the points in between the previous point and the current point
-	CPoint prevPoint = currentStroke->GetPrevPoint();
 	int dx = point.x - prevPoint.x;     // Difference in x coordinates
 	int dy = point.y - prevPoint.y;     // Difference in y coordinates
 	int steps = max(abs(dx), abs(dy));  // Number of steps needed for the line
@@ -161,13 +181,10 @@ void EraserTool::OnMouseMove(CDC* pDC, const CPoint& point, CDrawDoc* pDoc)
 			y - eraserSize / 2,   // top
 			x + eraserSize / 2,   // right
 			y + eraserSize / 2);  // bottom
-	
-		// Add the interpolated point to the last Drawable object (Eraser)
-		currentStroke->AddPoint(point);
 	}
 	
 	// Set the current point as previous
-	currentStroke->SetPrevPoint(point);
+	prevPoint = point;
 	
 	// Cleanup
 	pDC->SelectObject(pOldPen);
@@ -176,5 +193,13 @@ void EraserTool::OnMouseMove(CDC* pDC, const CPoint& point, CDrawDoc* pDoc)
 
 void EraserTool::OnLButtonUp()
 {
-    currentStroke = nullptr;  // End the stroke
+	strokeInProgress = FALSE;  // End the stroke
+}
+
+void EraserTool::SetSizeByIndex(int index)
+{
+	// Convert the index to the eraser size
+	std::vector<int> eraserSizes{ 4, 6, 8, 10 };
+	ASSERT(index >= 0 && index < eraserSizes.size());
+	eraserSize =  eraserSizes[index];
 }

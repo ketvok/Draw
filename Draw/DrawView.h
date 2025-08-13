@@ -28,12 +28,11 @@ class CDrawView : public CScrollView
 	CRect trackRect;
 	COLORREF foreColor;
 	COLORREF backColor;
-	int sizePen;
-	int sizeEraser;
-	int sizeShape;
+	int sizeIndex;
 	CDC bkgDC;
 	CBitmap bkgBitmap;
 	std::shared_ptr<DrawingTool> currentTool;
+	int activeControlCommandID;
 
 protected: // create from serialization only
 	CDrawView() noexcept;
@@ -44,8 +43,6 @@ public:
 	CDrawDoc* GetDocument() const;
 	COLORREF GetForeColor() const { return foreColor; }
 	COLORREF GetBackColor() const { return backColor; }
-	int GetSizePen() const { return sizePen; }
-	int GetSizeEraser() const { return sizeEraser; }
 
 // Operations
 public:

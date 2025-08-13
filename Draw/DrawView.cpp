@@ -70,10 +70,9 @@ CDrawView::CDrawView() noexcept :
 	trackRect{ 0, 0, 0, 0 },
 	foreColor{ RGB(0, 0, 0) },  // black
 	backColor{ RGB(255, 255, 255) },  // white
-	sizePen{ 1 },
-	sizeEraser{ 4 },
-	sizeShape{ 1 },
-	currentTool{ std::make_unique<PenTool>() }  // Default tool is Pen
+	sizeIndex{ 0 },
+	currentTool{ CreateTool(PEN_TOOL, sizeIndex, foreColor)},  // Default tool is Pen
+	activeControlCommandID{ ID_BUTTON_PEN }
 {
 	// TODO: add construction code here
 }
@@ -182,18 +181,8 @@ void CDrawView::OnInitialUpdate()
 		foreColor = RGB(0, 0, 0);
 		backColor = RGB(255, 255, 255);
 
-		switch (currentTool->GetToolType())
-		{
-		case pen:
-			currentTool->SetColor(foreColor);
-			break;
-		case eraser:
-			currentTool->SetColor(backColor);
-			break;
-		default:
-			ASSERT(FALSE);
-			break;
-		}
+		currentTool->SetPrimaryColor(foreColor);
+		currentTool->SetSecondaryColor(backColor);
 		//*********************************************************************************************
 	}
 
@@ -332,9 +321,6 @@ CDrawDoc* CDrawView::GetDocument() const // non-debug version is inline
 
 void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 {
-	// As soon as the left mouse button is pressed down, a new
-	// Drawable object is created.
-
 	// Capture the mouse input to this window so that it receives all
 	// mouse messages. This is necessary to receive mouse-move messages
 	// past the edge of the window.
@@ -394,7 +380,8 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 		point.Offset(-paddingHorizontal, -paddingVertical);
 
 		// Let the tool handle the mouse event
-		currentTool->OnLButtonDown(&canvasDC, point, pDoc);
+		currentTool->OnLButtonDown(&canvasDC, point);
+		pDoc->SetModifiedFlag(TRUE);
 
 		Invalidate();
 	}  // End if-else
@@ -420,7 +407,8 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 		point.Offset(-paddingHorizontal, -paddingVertical);
 
 		// Let the tool handle the mouse event
-		currentTool->OnMouseMove(&canvasDC, point, pDoc);
+		currentTool->OnMouseMove(&canvasDC, point);
+		pDoc->SetModifiedFlag(TRUE);
 
 		Invalidate();
 	}
@@ -465,16 +453,16 @@ BOOL CDrawView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 		{
 			// set the custom cursor based on the drawing tool.
 			HINSTANCE hInstance = AfxGetInstanceHandle();
-			switch (currentTool->GetToolType())
+			switch (activeControlCommandID)
 			{
-			case pen:
+			case ID_BUTTON_PEN:
 			{
 				HCURSOR curPen;
 				curPen = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_PEN_CURSOR));
 				SetCursor(curPen);
 				break;
 			}
-			case eraser:
+			case ID_BUTTON_ERASER:
 			{
 				HCURSOR curEraser;
 				curEraser = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_ERASER_CURSOR));
@@ -737,7 +725,8 @@ void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM lHint, CObject* /*pHint*/)
 
 void CDrawView::OnButtonPen()
 {
-	currentTool = std::make_unique<PenTool>(sizePen, foreColor);
+	currentTool = CreateTool(PEN_TOOL, sizeIndex, foreColor);
+	activeControlCommandID = ID_BUTTON_PEN;
 
 	//	Get the size selection gallery
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
@@ -750,7 +739,8 @@ void CDrawView::OnButtonPen()
 
 void CDrawView::OnButtonEraser()
 {
-	currentTool = std::make_unique<EraserTool>(sizeEraser, backColor);
+	currentTool = CreateTool(ERASER_TOOL, sizeIndex, backColor);
+	activeControlCommandID = ID_BUTTON_ERASER;
 
 	//	Get the size selection gallery
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
@@ -763,7 +753,7 @@ void CDrawView::OnButtonEraser()
 
 void CDrawView::OnUpdateButtonPen(CCmdUI* pCmdUI)
 {
-	if (currentTool->GetToolType() == pen)
+	if (activeControlCommandID == ID_BUTTON_PEN)
 	{
 		pCmdUI->SetCheck(TRUE);
 	}
@@ -775,7 +765,7 @@ void CDrawView::OnUpdateButtonPen(CCmdUI* pCmdUI)
 
 void CDrawView::OnUpdateButtonEraser(CCmdUI* pCmdUI)
 {
-	if (currentTool->GetToolType() == eraser)
+	if (activeControlCommandID == ID_BUTTON_ERASER)
 	{
 		pCmdUI->SetCheck(TRUE);
 	}
@@ -791,28 +781,8 @@ void CDrawView::OnGallerySize()
 	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
 	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
 
-	int index = pGallery->GetSelectedItem();
-
-	const std::vector<int> penSizes = { 1, 2, 3, 4 };
-	const std::vector<int> eraserSizes = { 4, 6, 8, 10 };
-
-	ASSERT(index >= 0 && index < penSizes.size() && index < eraserSizes.size());
-
-	sizePen = penSizes[index];
-	sizeEraser = eraserSizes[index];
-
-	switch (currentTool->GetToolType())
-	{
-	case pen:
-		currentTool->SetSize(sizePen);
-		break;
-	case eraser:
-		currentTool->SetSize(sizeEraser);
-		break;
-	default:
-		ASSERT(FALSE);
-		break;
-	}
+	sizeIndex = pGallery->GetSelectedItem();
+	currentTool->SetSizeByIndex(sizeIndex);
 }
 
 void CDrawView::OnForecolor()
@@ -827,15 +797,9 @@ void CDrawView::OnForecolor()
 	{
 		foreColor = pColorButton->GetAutomaticColor();
 	}
-	else
-	{
-		foreColor = selectedColor;
-	}
 
-	if (currentTool->GetToolType() == pen)
-	{
-		currentTool->SetColor(foreColor);
-	}
+	currentTool->SetPrimaryColor(selectedColor);
+	foreColor = selectedColor;
 }
 
 void CDrawView::OnBackcolor()
@@ -848,17 +812,11 @@ void CDrawView::OnBackcolor()
 
 	if (selectedColor == CLR_INVALID)  // CLR_INVALID == 0xFFFFFFFF == 4294967295
 	{
-		backColor = pColorButton->GetAutomaticColor();
-	}
-	else
-	{
-		backColor = selectedColor;
+		selectedColor = pColorButton->GetAutomaticColor();
 	}
 
-	if (currentTool->GetToolType() == eraser)
-	{
-		currentTool->SetColor(backColor);
-	}
+	currentTool->SetSecondaryColor(selectedColor);
+	backColor = selectedColor;
 }
 
 BOOL CDrawView::OnEraseBkgnd(CDC* pDC)

@@ -13,15 +13,12 @@
 //
 
 #pragma once
-#include "Drawable.h"
 #include <memory>
 #include <vector>
 
 class CDrawDoc : public CDocument
 {
 // Private data members
-	std::vector<std::shared_ptr<Drawable>> drawableArr;
-	
 	CBitmap canvasBitmap;
 	CDC canvasDC;
 	CSize canvasSize;
@@ -33,10 +30,7 @@ protected: // create from serialization only
 	DECLARE_DYNCREATE(CDrawDoc)
 
 // Attributes
-public:
-	void AddObject(std::shared_ptr<Drawable> pObject);
-	void DrawAll(CDC* pDC) const;
-	
+public:	
 	CBitmap& GetCanvasBitmap() { return canvasBitmap; }
 	CDC* GetCanvasDC() { return &canvasDC; }
 	const CSize& GetCanvasSize() const { return canvasSize; }

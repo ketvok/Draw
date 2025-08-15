@@ -830,7 +830,7 @@ void CDrawView::OnForecolor()
 
 	if (selectedColor == CLR_INVALID)  // CLR_INVALID == 0xFFFFFFFF == 4294967295
 	{
-		foreColor = pColorButton->GetAutomaticColor();
+		selectedColor = pColorButton->GetAutomaticColor();
 	}
 
 	currentTool->SetPrimaryColor(selectedColor);

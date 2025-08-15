@@ -3,7 +3,7 @@ Draw is a Microsoft Paint-like drawing application built using C++ and MFC.
 > **This application is a work in progress.** Features may change, and bugs may exist.
 
 ## Features
-- Two drawing tools: Pen and Eraser
+- Three drawing tools: Pen, Eraser and Brush
 
 - Each tool has 4 size options, unique to the tool
 

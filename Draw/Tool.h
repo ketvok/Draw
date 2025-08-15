@@ -6,6 +6,7 @@ enum ToolType
 {
 	PEN_TOOL = 0,
 	ERASER_TOOL = 1,
+	BRUSH_TOOL = 2
 };
 
 class DrawingTool

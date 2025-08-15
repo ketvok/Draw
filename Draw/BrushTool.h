@@ -1,18 +1,19 @@
 #pragma once
 #include "Tool.h"
 
-class PenTool : public DrawingTool
+class BrushTool : public DrawingTool
 {
 	BOOL strokeInProgress;
 	CPoint prevPoint;
-	int penSize;
-	COLORREF penColor;
+	int brushSize;
+	COLORREF brushColor;
+	CPoint prevCurPoint;
 public:
-	PenTool(int size, COLORREF color);
+	BrushTool(int size, COLORREF color);
 	void OnLButtonDown(CDC* pDC, const CPoint& point) override;
 	void OnMouseMove(CDC* pDC, const CPoint& point) override;
 	void OnLButtonUp() override;
 	void SetSizeByIndex(int size) override;
-	void SetPrimaryColor(COLORREF color) override { penColor = color; }
+	void SetPrimaryColor(COLORREF color) override { brushColor = color; }
 	void SetSecondaryColor(COLORREF color) override { /* No background color */ }
 };

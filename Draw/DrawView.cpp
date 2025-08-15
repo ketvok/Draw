@@ -55,6 +55,8 @@ BEGIN_MESSAGE_MAP(CDrawView, CScrollView)
 	ON_COMMAND(ID_GALLERY_SIZE, &CDrawView::OnGallerySize)
 	ON_COMMAND(ID_FORECOLOR, &CDrawView::OnForecolor)
 	ON_COMMAND(ID_BACKCOLOR, &CDrawView::OnBackcolor)
+	ON_COMMAND(ID_BUTTON_BRUSH, &CDrawView::OnButtonBrush)
+	ON_UPDATE_COMMAND_UI(ID_BUTTON_BRUSH, &CDrawView::OnUpdateButtonBrush)
 END_MESSAGE_MAP()
 
 // CDrawView construction/destruction
@@ -392,26 +394,21 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 	if (!drawingMode)  // If drawing is not in progress, do nothing.
 		return;
 
-	if (GetKeyState(VK_LBUTTON) & 0x8000)
-		// If the high order bit of return value is set,
-		//  the left mouse button is down.
-	{
-		CDrawDoc* pDoc = GetDocument();
-		// Get the DC on which to draw
-		CDC& canvasDC = *pDoc->GetCanvasDC();
+	CDrawDoc* pDoc = GetDocument();
+	// Get the DC on which to draw
+	CDC& canvasDC = *pDoc->GetCanvasDC();
 
-		CPoint scrollPos = GetScrollPosition();
-		point.Offset(scrollPos.x, scrollPos.y);  // Offset the point by the scroll position
+	CPoint scrollPos = GetScrollPosition();
+	point.Offset(scrollPos.x, scrollPos.y);  // Offset the point by the scroll position
 
-		// Adjust point to canvas top-left (0, 0) coordinates
-		point.Offset(-paddingHorizontal, -paddingVertical);
+	// Adjust point to canvas top-left (0, 0) coordinates
+	point.Offset(-paddingHorizontal, -paddingVertical);
 
-		// Let the tool handle the mouse event
-		currentTool->OnMouseMove(&canvasDC, point);
-		pDoc->SetModifiedFlag(TRUE);
+	// Let the tool handle the mouse event
+	currentTool->OnMouseMove(&canvasDC, point);
+	pDoc->SetModifiedFlag(TRUE);
 
-		Invalidate();
-	}
+	Invalidate();
 }
 
 BOOL CDrawView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
@@ -469,6 +466,13 @@ BOOL CDrawView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 				SetCursor(curEraser);
 				break;
 			}
+			case ID_BUTTON_BRUSH:
+			{
+				HCURSOR curBrush;
+				curBrush = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_BRUSH_CURSOR));
+				SetCursor(curBrush);
+				break;
+			}
 			default:
 				break;
 			}  // End switch
@@ -497,6 +501,10 @@ void CDrawView::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	// Releases the mouse capture from OnLButtonDown.
 	ReleaseCapture();
+
+	CDrawDoc* pDoc = GetDocument();
+	// Get the DC on which to draw
+	CDC& canvasDC = *pDoc->GetCanvasDC();
 
 	currentTool->OnLButtonUp();
 }
@@ -751,6 +759,20 @@ void CDrawView::OnButtonEraser()
 	pGallery->SetPalette(IDB_SIZES46810, 104);
 }
 
+void CDrawView::OnButtonBrush()
+{
+	currentTool = CreateTool(BRUSH_TOOL, sizeIndex, foreColor);
+	activeControlCommandID = ID_BUTTON_BRUSH;
+
+	//	Get the size selection gallery
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
+	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
+
+	//	Set icons for brush tool sizes
+	pGallery->SetPalette(IDB_SIZES1358, 104);
+}
+
 void CDrawView::OnUpdateButtonPen(CCmdUI* pCmdUI)
 {
 	if (activeControlCommandID == ID_BUTTON_PEN)
@@ -774,6 +796,19 @@ void CDrawView::OnUpdateButtonEraser(CCmdUI* pCmdUI)
 		pCmdUI->SetCheck(FALSE);
 	}
 }
+
+void CDrawView::OnUpdateButtonBrush(CCmdUI* pCmdUI)
+{
+	if (activeControlCommandID == ID_BUTTON_BRUSH)
+	{
+		pCmdUI->SetCheck(TRUE);
+	}
+	else
+	{
+		pCmdUI->SetCheck(FALSE);
+	}
+}
+
 
 void CDrawView::OnGallerySize()
 {

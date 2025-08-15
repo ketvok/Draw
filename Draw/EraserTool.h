@@ -13,6 +13,6 @@ public:
 	void OnMouseMove(CDC* pDC, const CPoint& point) override;
 	void OnLButtonUp() override;
 	void SetSizeByIndex(int size) override;
-	void SetPrimaryColor(COLORREF color) override { /* No foreground color for eraser */ }
+	void SetPrimaryColor(COLORREF color) override { /* No foreground color */ }
 	void SetSecondaryColor(COLORREF color) override { eraserColor = color; }
 };

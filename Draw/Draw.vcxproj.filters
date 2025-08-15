@@ -48,6 +48,9 @@
     <ClInclude Include="EraserTool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BrushTool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Draw.cpp">
@@ -123,6 +126,9 @@
     <Image Include="res\sizes46810.bmp">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="res\sizes1358.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\ribbon.mfcribbon-ms">
@@ -135,6 +141,9 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="res\Eraser.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\Brush.cur">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

@@ -31,6 +31,8 @@
 #define IDB_SIZES46810                  314
 #define IDC_PEN_CURSOR                  315
 #define IDC_ERASER_CURSOR               316
+#define IDB_SIZES1358                   317
+#define IDC_BRUSH_CURSOR                319
 #define ID_WRITE_PASTEASHYPERLINK       32770
 #define ID_BUTTON_ERASER                32774
 #define ID_BUTTON_PEN                   32775
@@ -41,14 +43,14 @@
 #define ID_FORECOLOR                    32795
 #define ID_BACKCOLOR                    32796
 #define ID_GALLERY_COLORS               32797
-#define ID_BUTTON3                      32804
+#define ID_BUTTON_BRUSH                 32805
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        317
-#define _APS_NEXT_COMMAND_VALUE         32805
+#define _APS_NEXT_RESOURCE_VALUE        320
+#define _APS_NEXT_COMMAND_VALUE         32806
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

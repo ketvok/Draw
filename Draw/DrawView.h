@@ -90,6 +90,8 @@ public:
 	afx_msg void OnGallerySize();
 	afx_msg void OnForecolor();
 	afx_msg void OnBackcolor();
+	afx_msg void OnButtonBrush();
+	afx_msg void OnUpdateButtonBrush(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in DrawView.cpp

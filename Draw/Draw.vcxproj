@@ -186,6 +186,7 @@
     <ClInclude Include="Draw.h" />
     <ClInclude Include="DrawDoc.h" />
     <ClInclude Include="EraserTool.h" />
+    <ClInclude Include="BrushTool.h" />
     <ClInclude Include="PenTool.h" />
     <ClInclude Include="Tool.h" />
     <ClInclude Include="DrawView.h" />
@@ -223,6 +224,7 @@
     <Image Include="res\shapes.bmp" />
     <Image Include="res\shapes24.bmp" />
     <Image Include="res\sizes1234.bmp" />
+    <Image Include="res\sizes1358.bmp" />
     <Image Include="res\sizes46810.bmp" />
     <Image Include="res\Toolbar.bmp" />
     <Image Include="res\Toolbar256.bmp" />
@@ -230,6 +232,7 @@
     <Image Include="res\writesmall.bmp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="res\Brush.cur" />
     <None Include="res\Cursor158.cur" />
     <None Include="res\Draw.rc2" />
     <None Include="res\Eraser.cur" />

@@ -236,7 +236,7 @@
   <ItemGroup>
     <None Include="res\Brush.cur" />
     <None Include="res\ColorPicker.cur" />
-    <None Include="res\Cursor158.cur" />
+    <None Include="res\Pen.cur" />
     <None Include="res\Draw.rc2" />
     <None Include="res\Eraser.cur" />
     <None Include="res\Fill.cur" />

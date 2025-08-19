@@ -143,7 +143,7 @@
     <None Include="res\Draw.rc2">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="res\Cursor158.cur">
+    <None Include="res\Pen.cur">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="res\Eraser.cur">

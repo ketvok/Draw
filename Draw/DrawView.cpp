@@ -1,14 +1,3 @@
-// This MFC Samples source code demonstrates using MFC Microsoft Office Fluent User Interface
-// (the "Fluent UI") and is provided only as referential material to supplement the
-// Microsoft Foundation Classes Reference and related electronic documentation
-// included with the MFC C++ library software.
-// License terms to copy, use or distribute the Fluent UI are available separately.
-// To learn more about our Fluent UI licensing program, please visit
-// https://go.microsoft.com/fwlink/?LinkId=238214.
-//
-// Copyright (C) Microsoft Corporation
-// All rights reserved.
-
 // DrawView.cpp : implementation of the CDrawView class
 //
 
@@ -22,8 +11,6 @@
 
 #include "DrawDoc.h"
 #include "DrawView.h"
-#include "Pen.h"
-#include "Eraser.h"
 #include <cmath>
 #include "MainFrm.h"
 
@@ -117,7 +104,7 @@ void CDrawView::OnDraw(CDC* pDC)
 	{	
 		CRect clientRect; GetClientRect(&clientRect);
 
-		if (bkgDC.m_hDC != NULL)
+		if (bkgDC.m_hDC != NULL && canvasDC.m_hDC != NULL)
 		{
 			// Get the current scroll position
 			CPoint scrollPos = GetScrollPosition();
@@ -193,9 +180,10 @@ void CDrawView::OnInitialUpdate()
 		//*********************************************************************************************
 	}
 
-	//*************************************************************************************************
-	// Initialize background DC and bitmap
 	CClientDC dc(this);
+
+	//*************************************************************************************************
+	// Initialize the background DC and bitmap
 	if (!bkgBitmap.m_hObject)
 	{
 		VERIFY(bkgBitmap.CreateCompatibleBitmap(&dc, GetDeviceCaps(dc, HORZRES), GetDeviceCaps(dc, VERTRES)));
@@ -205,13 +193,13 @@ void CDrawView::OnInitialUpdate()
 	}
 	//*************************************************************************************************
 	
-	// ************************************************************************************************
-	// Initialize the canvas DC and bitmap
 	CDC& canvasDC = *pDoc->GetCanvasDC();
 	CBitmap& canvasBitmap = pDoc->GetCanvasBitmap();
-
 	const CSize& canvasSize = pDoc->GetCanvasSize();
-	if (!canvasBitmap.m_hObject && !canvasDC.m_hDC)
+
+	// ************************************************************************************************
+    // Initialize the canvas DC and bitmap
+	if (!canvasDC.m_hDC)
 	{
 		VERIFY(canvasBitmap.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
 		canvasDC.CreateCompatibleDC(&dc);
@@ -636,11 +624,18 @@ void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM lHint, CObject* /*pHint*/)
 {
 	CClientDC dc(this);
 	CDrawDoc* pDoc = GetDocument();
-
-	const CSize& canvasSize = pDoc->GetCanvasSize();
-
 	CDC& canvasDC = *pDoc->GetCanvasDC();
 	CBitmap& canvasBitmap = pDoc->GetCanvasBitmap();
+	const CSize& canvasSize = pDoc->GetCanvasSize();
+
+	// Initialize the canvas DC and bitmap
+	if (!canvasDC.m_hDC)
+	{
+		VERIFY(canvasBitmap.CreateCompatibleBitmap(&dc, canvasSize.cx, canvasSize.cy));
+		canvasDC.CreateCompatibleDC(&dc);
+		canvasDC.SelectObject(&canvasBitmap);
+		canvasDC.FillSolidRect(0, 0, canvasSize.cx, canvasSize.cy, RGB(255, 255, 255)); // White
+	}
 
 	int vScrollBarWidth = GetSystemMetrics(SM_CXVSCROLL);
 	int hScrollBarHeight = GetSystemMetrics(SM_CYHSCROLL);

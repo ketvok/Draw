@@ -6,6 +6,10 @@
 #define IDP_OLE_INIT_FAILED             100
 #define IDS_FORECOLOR_LABEL             101
 #define IDS_BACKCOLOR_LABEL             102
+#define IDS_DEFAULT_FILE_NAME           103
+#define IDS_FILE_SAVE_AS                104
+#define IDS_FILE_OPEN                   105
+#define IDS_FILE_OPEN_ERROR             106
 #define IDB_WRITESMALL                  110
 #define IDB_WRITELARGE                  111
 #define IDB_MAIN                        112
@@ -34,7 +38,6 @@
 #define IDB_SIZES1358                   317
 #define IDC_BRUSH_CURSOR                319
 #define IDC_FILL_CURSOR                 320
-#define IDC_CURSOR1                     321
 #define IDC_COLOR_PICKER_CURSOR         321
 #define ID_WRITE_PASTEASHYPERLINK       32770
 #define ID_BUTTON_ERASER                32774
@@ -48,7 +51,6 @@
 #define ID_GALLERY_COLORS               32797
 #define ID_BUTTON_BRUSH                 32805
 #define ID_BUTTON_FILL                  32806
-#define ID_BUTTON2                      32807
 #define ID_BUTTON_COLOR_PICKER          32808
 
 // Next default values for new objects

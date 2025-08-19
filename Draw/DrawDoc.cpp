@@ -1,14 +1,3 @@
-// This MFC Samples source code demonstrates using MFC Microsoft Office Fluent User Interface
-// (the "Fluent UI") and is provided only as referential material to supplement the
-// Microsoft Foundation Classes Reference and related electronic documentation
-// included with the MFC C++ library software.
-// License terms to copy, use or distribute the Fluent UI are available separately.
-// To learn more about our Fluent UI licensing program, please visit
-// https://go.microsoft.com/fwlink/?LinkId=238214.
-//
-// Copyright (C) Microsoft Corporation
-// All rights reserved.
-
 // DrawDoc.cpp : implementation of the CDrawDoc class
 //
 
@@ -22,9 +11,6 @@
 
 #include "DrawDoc.h"
 #include "MainFrm.h"
-#include "Pen.h"
-#include "Eraser.h"
-
 #include <propkey.h>
 
 #ifdef _DEBUG
@@ -44,8 +30,6 @@ END_MESSAGE_MAP()
 
 CDrawDoc::CDrawDoc() noexcept : canvasSize{ 800, 600 }, newImageLoaded{ FALSE }
 {
-	// TODO: add one-time construction code here
-
 }
 
 CDrawDoc::~CDrawDoc()
@@ -59,9 +43,6 @@ BOOL CDrawDoc::OnNewDocument()
 	if (!CDocument::OnNewDocument())
 		return FALSE;
 
-	// TODO: add reinitialization code here
-	// (SDI documents will reuse this document)
-
 	return TRUE;
 }
 
@@ -71,11 +52,9 @@ void CDrawDoc::Serialize(CArchive& ar)
 {
 	if (ar.IsStoring())
 	{
-		// TODO: add storing code here
 	}
 	else
 	{
-		// TODO: add loading code here
 	}
 }
 
@@ -154,6 +133,7 @@ void CDrawDoc::DeleteContents()
 {
 	canvasDC.DeleteDC();  // Delete DC first, then delete bitmap, because
 	canvasBitmap.DeleteObject();  // deleting bitmap while selected into DC will fail.
+	
 	canvasImage.Destroy();  // Destroy the image object
 
 	CDocument::DeleteContents();
@@ -185,10 +165,13 @@ BOOL CDrawDoc::DoSave(LPCTSTR lpszPathName, BOOL bReplace)
 			_T("GIF (*.gif)|*.gif|")
 			_T("TIFF (*.tiff)|*.tiff||");
 
+		CString filename;
+		ASSERT(filename.LoadStringW(IDS_DEFAULT_FILE_NAME));
+
 		// Create file dialog for saving
 		CFileDialog dlg(FALSE,	// FALSE = Save As dialog
 			_T(".png"),			// Default extension
-			_T("Untitled"),		// Default filename // myTODO: add to string table
+			filename,		    // Default filename
 			OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY,
 			strFilter,			// File type filters
 			AfxGetMainWnd());	// Parent window
@@ -197,7 +180,9 @@ BOOL CDrawDoc::DoSave(LPCTSTR lpszPathName, BOOL bReplace)
 		dlg.m_ofn.nFilterIndex = 1;
 
 		// Set dialog title
-		dlg.m_ofn.lpstrTitle = _T("Save As");  // myTODO: add to string table
+        CString strTitle;
+		ASSERT(strTitle.LoadString(IDS_FILE_SAVE_AS));
+		dlg.m_ofn.lpstrTitle = strTitle;
 
 		// Open the dialog and check if the user clicked OK
 		if (dlg.DoModal() != IDOK)
@@ -294,7 +279,9 @@ void CDrawDoc::OnFileOpen() // ON COMMAND ID_FILE_OPEN
 	dlg.m_ofn.nFilterIndex = 6;
 
 	// Set dialog title
-	dlg.m_ofn.lpstrTitle = _T("Open");  // myTODO: add to string table
+    CString strTitle;
+	ASSERT(strTitle.LoadString(IDS_FILE_OPEN));
+    dlg.m_ofn.lpstrTitle = strTitle;
 
 	// Open the dialog and check if the user clicked OK
 	if (dlg.DoModal() == IDOK)
@@ -310,18 +297,22 @@ BOOL CDrawDoc::OnOpenDocument(LPCTSTR lpszPathName)
 {
 	if (!CDocument::OnOpenDocument(lpszPathName))
 		return FALSE;
-
-	CString message;
-	message.Append(lpszPathName);
-	message.Append(_T(" cannot be opened. It is not an image file, or its format is not \
-		supported."));  // myTODO: add to string table.
 	
 	// Load the image from the specified path
 	if (FAILED(canvasImage.Load(lpszPathName)))
 	{
+		CString error;
+		ASSERT(error.LoadString(IDS_FILE_OPEN_ERROR));
+		CString message;
+		message.Append(lpszPathName);
+		message.Append(error);
 		AfxMessageBox(message, MB_ICONERROR | MB_OK);
+		
+		UpdateAllViews(NULL, 0, NULL);
+		
 		return FALSE;
 	}
+
 	newImageLoaded = TRUE;
 	
 	// Update canvas size

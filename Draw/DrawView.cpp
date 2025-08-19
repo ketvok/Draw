@@ -57,6 +57,11 @@ BEGIN_MESSAGE_MAP(CDrawView, CScrollView)
 	ON_COMMAND(ID_BACKCOLOR, &CDrawView::OnBackcolor)
 	ON_COMMAND(ID_BUTTON_BRUSH, &CDrawView::OnButtonBrush)
 	ON_UPDATE_COMMAND_UI(ID_BUTTON_BRUSH, &CDrawView::OnUpdateButtonBrush)
+	ON_COMMAND(ID_BUTTON_FILL, &CDrawView::OnButtonFill)
+	ON_UPDATE_COMMAND_UI(ID_BUTTON_FILL, &CDrawView::OnUpdateButtonFill)
+	ON_WM_RBUTTONDOWN()
+	ON_COMMAND(ID_BUTTON_COLOR_PICKER, &CDrawView::OnButtonColorPicker)
+	ON_UPDATE_COMMAND_UI(ID_BUTTON_COLOR_PICKER, &CDrawView::OnUpdateButtonColorPicker)
 END_MESSAGE_MAP()
 
 // CDrawView construction/destruction
@@ -73,7 +78,7 @@ CDrawView::CDrawView() noexcept :
 	foreColor{ RGB(0, 0, 0) },  // black
 	backColor{ RGB(255, 255, 255) },  // white
 	sizeIndex{ 0 },
-	currentTool{ CreateTool(PEN_TOOL, sizeIndex, foreColor)},  // Default tool is Pen
+	currentTool{ CreatePenTool(sizeIndex, foreColor, backColor)},  // Default tool is Pen
 	activeControlCommandID{ ID_BUTTON_PEN }
 {
 	// TODO: add construction code here
@@ -280,12 +285,6 @@ void CDrawView::OnEndPrinting(CDC* /*pDC*/, CPrintInfo* /*pInfo*/)
 	// TODO: add cleanup after printing
 }
 
-void CDrawView::OnRButtonUp(UINT /* nFlags */, CPoint point)
-{
-	ClientToScreen(&point);
-	OnContextMenu(this, point);
-}
-
 void CDrawView::OnContextMenu(CWnd* /* pWnd */, CPoint point)
 {
 #ifndef SHARED_HANDLERS
@@ -383,7 +382,61 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 
 		// Let the tool handle the mouse event
 		currentTool->OnLButtonDown(&canvasDC, point);
-		pDoc->SetModifiedFlag(TRUE);
+
+		if (activeControlCommandID != ID_BUTTON_COLOR_PICKER)  // Color picker doesn't change doc
+		{
+			pDoc->SetModifiedFlag(TRUE);
+		}
+
+		Invalidate();
+	}  // End if-else
+}
+
+void CDrawView::OnRButtonDown(UINT nFlags, CPoint point)
+{
+	// Capture the mouse input to this window so that it receives all
+	// mouse messages. This is necessary to receive mouse-move messages
+	// past the edge of the window.
+
+	CPoint scrollPos = GetScrollPosition();  // Get current scroll position
+
+	// Offset the reize handle rectagle by the scroll position
+	CRect adjustedResizeHandleRect = resizeHandleRect;
+	adjustedResizeHandleRect.OffsetRect(-scrollPos.x, -scrollPos.y);
+
+	CDrawDoc* pDoc = GetDocument();
+
+	// Clicked inside the resize handle
+	if (adjustedResizeHandleRect.PtInRect(point))
+	{
+		return;  // Do nothing if right-clicked inside the resize handle.
+	}
+	// Clicked inside the canvas
+	else
+	{
+		CPoint scrollPos = GetScrollPosition();
+		point.Offset(scrollPos.x, scrollPos.y);  // Offset the point by the scroll position
+
+		if (!canvasRect.PtInRect(point))  // If clicked outside canvas,
+		{
+			return;  // do nothing.
+		}
+
+		SetCapture();
+
+		// Get the DC on which to draw
+		CDC& canvasDC = *pDoc->GetCanvasDC();
+
+		// Adjust point to canvas top-left (0, 0) coordinates
+		point.Offset(-paddingHorizontal, -paddingVertical);
+
+		// Let the tool handle the mouse event
+		currentTool->OnRButtonDown(&canvasDC, point);
+		
+		if (activeControlCommandID != ID_BUTTON_COLOR_PICKER)  // Color picker doesn't change doc
+		{
+			pDoc->SetModifiedFlag(TRUE);
+		}
 
 		Invalidate();
 	}  // End if-else
@@ -406,7 +459,6 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 
 	// Let the tool handle the mouse event
 	currentTool->OnMouseMove(&canvasDC, point);
-	pDoc->SetModifiedFlag(TRUE);
 
 	Invalidate();
 }
@@ -473,6 +525,20 @@ BOOL CDrawView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 				SetCursor(curBrush);
 				break;
 			}
+			case ID_BUTTON_FILL:
+			{
+				HCURSOR curFill;
+				curFill = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_FILL_CURSOR));
+				SetCursor(curFill);
+				break;
+			}
+			case ID_BUTTON_COLOR_PICKER:
+			{
+				HCURSOR curFill;
+				curFill = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_COLOR_PICKER_CURSOR));
+				SetCursor(curFill);
+				break;
+			}
 			default:
 				break;
 			}  // End switch
@@ -502,11 +568,18 @@ void CDrawView::OnLButtonUp(UINT nFlags, CPoint point)
 	// Releases the mouse capture from OnLButtonDown.
 	ReleaseCapture();
 
-	CDrawDoc* pDoc = GetDocument();
-	// Get the DC on which to draw
-	CDC& canvasDC = *pDoc->GetCanvasDC();
-
 	currentTool->OnLButtonUp();
+}
+
+void CDrawView::OnRButtonUp(UINT /* nFlags */, CPoint point)
+{
+	// Releases the mouse capture from OnRButtonDown.
+	ReleaseCapture();
+
+	currentTool->OnRButtonUp();
+
+	//ClientToScreen(&point);
+	//OnContextMenu(this, point);
 }
 
 void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
@@ -719,7 +792,7 @@ void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM lHint, CObject* /*pHint*/)
 		UpdateClientArea();  // Draw background elements (shadow, handle, etc.)
 	}
 
-	else  // lHint == 0 -> just redraw the view
+	else  // Just redraw the view
 	{
 		UpdateClientArea();
 
@@ -733,7 +806,7 @@ void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM lHint, CObject* /*pHint*/)
 
 void CDrawView::OnButtonPen()
 {
-	currentTool = CreateTool(PEN_TOOL, sizeIndex, foreColor);
+	currentTool = CreatePenTool(sizeIndex, foreColor, backColor);
 	activeControlCommandID = ID_BUTTON_PEN;
 
 	//	Get the size selection gallery
@@ -747,7 +820,7 @@ void CDrawView::OnButtonPen()
 
 void CDrawView::OnButtonEraser()
 {
-	currentTool = CreateTool(ERASER_TOOL, sizeIndex, backColor);
+	currentTool = CreateEraserTool(sizeIndex, backColor);
 	activeControlCommandID = ID_BUTTON_ERASER;
 
 	//	Get the size selection gallery
@@ -761,7 +834,7 @@ void CDrawView::OnButtonEraser()
 
 void CDrawView::OnButtonBrush()
 {
-	currentTool = CreateTool(BRUSH_TOOL, sizeIndex, foreColor);
+	currentTool = CreateBrushTool(sizeIndex, foreColor, backColor);
 	activeControlCommandID = ID_BUTTON_BRUSH;
 
 	//	Get the size selection gallery
@@ -771,6 +844,19 @@ void CDrawView::OnButtonBrush()
 
 	//	Set icons for brush tool sizes
 	pGallery->SetPalette(IDB_SIZES1358, 104);
+}
+
+void CDrawView::OnButtonFill()
+{
+	currentTool = CreateFillTool(foreColor, backColor);
+	activeControlCommandID = ID_BUTTON_FILL;
+}
+
+void CDrawView::OnButtonColorPicker()
+{
+	currentTool = CreateColorPickerTool();
+	currentTool->SetObserver(this);  // Set the observer to receive color updates
+	activeControlCommandID = ID_BUTTON_COLOR_PICKER;
 }
 
 void CDrawView::OnUpdateButtonPen(CCmdUI* pCmdUI)
@@ -800,6 +886,30 @@ void CDrawView::OnUpdateButtonEraser(CCmdUI* pCmdUI)
 void CDrawView::OnUpdateButtonBrush(CCmdUI* pCmdUI)
 {
 	if (activeControlCommandID == ID_BUTTON_BRUSH)
+	{
+		pCmdUI->SetCheck(TRUE);
+	}
+	else
+	{
+		pCmdUI->SetCheck(FALSE);
+	}
+}
+
+void CDrawView::OnUpdateButtonFill(CCmdUI* pCmdUI)
+{
+	if (activeControlCommandID == ID_BUTTON_FILL)
+	{
+		pCmdUI->SetCheck(TRUE);
+	}
+	else
+	{
+		pCmdUI->SetCheck(FALSE);
+	}
+}
+
+void CDrawView::OnUpdateButtonColorPicker(CCmdUI* pCmdUI)
+{
+	if (activeControlCommandID == ID_BUTTON_COLOR_PICKER)
 	{
 		pCmdUI->SetCheck(TRUE);
 	}
@@ -930,4 +1040,30 @@ void CDrawView::UpdateClientArea()
 
 	// Cleanup
 	bkgDC.SelectObject(pOldPen);
+}
+
+void CDrawView::OnPrimaryColorPicked(COLORREF color)
+{
+	foreColor = color;
+
+	// Update the foreground color button in the ribbon bar
+	CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+	pMainFrame->m_wndRibbonBar.GetElementsByID(ID_FORECOLOR, arr);
+	CMFCRibbonColorButton* pForeColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+	pForeColorButton->SetColor(foreColor);
+	pMainFrame->m_wndRibbonBar.ForceRecalcLayout();
+}
+
+void CDrawView::OnSecondaryColorPicked(COLORREF color)
+{
+	backColor = color;
+
+	// Update the background color button in the ribbon bar
+	CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+	pMainFrame->m_wndRibbonBar.GetElementsByID(ID_BACKCOLOR, arr);
+	CMFCRibbonColorButton* pBackColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+	pBackColorButton->SetColor(backColor);
+	pMainFrame->m_wndRibbonBar.ForceRecalcLayout();
 }

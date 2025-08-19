@@ -7,8 +7,8 @@ class Pen :
 {
     std::vector<CPoint> points;
 	CPen pen;
-	int penSize;
-	COLORREF penColor;
+	int size;
+	COLORREF color1;
 	CPoint prevPoint;
 public:
 	Pen(int size, COLORREF color);

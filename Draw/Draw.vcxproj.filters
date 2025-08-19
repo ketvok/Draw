@@ -51,6 +51,12 @@
     <ClInclude Include="BrushTool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FillTool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ColorPickerTool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Draw.cpp">
@@ -144,6 +150,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="res\Brush.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\Fill.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\ColorPicker.cur">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

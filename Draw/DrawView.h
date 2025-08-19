@@ -15,7 +15,7 @@
 #pragma once
 #include "Tool.h"
 
-class CDrawView : public CScrollView
+class CDrawView : public CScrollView, public DrawingTool::Observer
 {
 // Private data members
 	BOOL drawingMode;
@@ -43,6 +43,9 @@ public:
 	CDrawDoc* GetDocument() const;
 	COLORREF GetForeColor() const { return foreColor; }
 	COLORREF GetBackColor() const { return backColor; }
+
+	virtual void OnPrimaryColorPicked(COLORREF color) override;
+	virtual void OnSecondaryColorPicked(COLORREF color) override;
 
 // Operations
 public:
@@ -92,6 +95,11 @@ public:
 	afx_msg void OnBackcolor();
 	afx_msg void OnButtonBrush();
 	afx_msg void OnUpdateButtonBrush(CCmdUI* pCmdUI);
+	afx_msg void OnButtonFill();
+	afx_msg void OnUpdateButtonFill(CCmdUI* pCmdUI);
+	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnButtonColorPicker();
+	afx_msg void OnUpdateButtonColorPicker(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in DrawView.cpp

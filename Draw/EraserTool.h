@@ -5,14 +5,13 @@ class EraserTool : public DrawingTool
 {
 	BOOL strokeInProgress;
 	CPoint prevPoint;
-	int eraserSize;
-	COLORREF eraserColor;
+	int size;
+	COLORREF color;
 public:
 	EraserTool(int size, COLORREF color);
 	void OnLButtonDown(CDC* pDC, const CPoint& point) override;
 	void OnMouseMove(CDC* pDC, const CPoint& point) override;
 	void OnLButtonUp() override;
 	void SetSizeByIndex(int size) override;
-	void SetPrimaryColor(COLORREF color) override { /* No foreground color */ }
-	void SetSecondaryColor(COLORREF color) override { eraserColor = color; }
+	void SetSecondaryColor(COLORREF color) override { this->color = color; }
 };

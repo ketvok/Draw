@@ -42,7 +42,7 @@ END_MESSAGE_MAP()
 
 // CDrawDoc construction/destruction
 
-CDrawDoc::CDrawDoc() noexcept : canvasSize{ 800, 600 }
+CDrawDoc::CDrawDoc() noexcept : canvasSize{ 800, 600 }, newImageLoaded{ FALSE }
 {
 	// TODO: add one-time construction code here
 

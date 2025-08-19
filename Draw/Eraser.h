@@ -8,8 +8,8 @@ class Eraser :
     std::vector<CPoint> points;
     CPen pen;
     CBrush brush;
-    int eraserSize;
-    COLORREF eraserColor;
+    int size;
+    COLORREF color;
 	CPoint prevPoint;
 public:
     Eraser(int size, COLORREF color);

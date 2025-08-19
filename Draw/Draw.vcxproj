@@ -183,10 +183,12 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ColorPickerTool.h" />
     <ClInclude Include="Draw.h" />
     <ClInclude Include="DrawDoc.h" />
     <ClInclude Include="EraserTool.h" />
     <ClInclude Include="BrushTool.h" />
+    <ClInclude Include="FillTool.h" />
     <ClInclude Include="PenTool.h" />
     <ClInclude Include="Tool.h" />
     <ClInclude Include="DrawView.h" />
@@ -233,9 +235,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="res\Brush.cur" />
+    <None Include="res\ColorPicker.cur" />
     <None Include="res\Cursor158.cur" />
     <None Include="res\Draw.rc2" />
     <None Include="res\Eraser.cur" />
+    <None Include="res\Fill.cur" />
     <None Include="res\ribbon.mfcribbon-ms" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

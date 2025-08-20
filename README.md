@@ -2,20 +2,25 @@
 Draw is a Microsoft Paint-like drawing application built using C++ and MFC.
 > **This application is a work in progress.** Features may change, and bugs may exist.
 
+<img width="970" height="889" alt="MyDrawing" src="https://github.com/user-attachments/assets/904aed66-bdd2-4fdb-87e6-a3544dd901bb" />
+
 ## Features
-- Three drawing tools: Pen, Eraser and Brush
+- Draw freely on a resizable canvas
 
-- Each tool has 4 size options, unique to the tool
+- Choose different colors and sizes for your drawing tools
 
-- Choose color for each tool separately
-
-- Draw freely on a resizable white canvas
+- Five tools to choose from:
+  - Pen - basic freehand writing and drawing
+  - Eraser - drawing with background color
+  - Brush - draw smooth lines
+  - Fill - fill an area with color
+  - Color Picker - pick a color from any part of the canvas to be used with other tools
 
 - Canvas resizing via drag handle at the bottom-right corner
 
 - Print support with scaling to printable area while maintaining aspect ratio
 
-- Save and open images in different file formats
+- Save and open images in different file formats (PNG, JPEG, BMP, GIF, TIFF)
 
 ## Build Instructions
 

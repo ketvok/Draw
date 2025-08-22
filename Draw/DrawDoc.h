@@ -49,6 +49,13 @@ public:
 #endif
 
 protected:
+// Helper methods
+	/// <summary>
+	/// Loads a string from the resource file using the specified resource ID. </summary>
+	/// <param name="nID">Resource ID of the string to load.</param>
+	/// <returns>
+	/// Loaded string from the resource file.</returns>
+	CString LoadStringFromResource(UINT nID);
 
 // Generated message map functions
 protected:

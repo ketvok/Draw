@@ -165,8 +165,7 @@ BOOL CDrawDoc::DoSave(LPCTSTR lpszPathName, BOOL bReplace)
 			_T("GIF (*.gif)|*.gif|")
 			_T("TIFF (*.tiff)|*.tiff||");
 
-		CString filename;
-		ASSERT(filename.LoadStringW(IDS_DEFAULT_FILE_NAME));
+		CString filename = LoadStringFromResource(IDS_DEFAULT_FILE_NAME);
 
 		// Create file dialog for saving
 		CFileDialog dlg(FALSE,	// FALSE = Save As dialog
@@ -180,8 +179,7 @@ BOOL CDrawDoc::DoSave(LPCTSTR lpszPathName, BOOL bReplace)
 		dlg.m_ofn.nFilterIndex = 1;
 
 		// Set dialog title
-        CString strTitle;
-		ASSERT(strTitle.LoadString(IDS_FILE_SAVE_AS));
+		CString strTitle = LoadStringFromResource(IDS_FILE_SAVE_AS);
 		dlg.m_ofn.lpstrTitle = strTitle;
 
 		// Open the dialog and check if the user clicked OK
@@ -279,8 +277,7 @@ void CDrawDoc::OnFileOpen() // ON COMMAND ID_FILE_OPEN
 	dlg.m_ofn.nFilterIndex = 6;
 
 	// Set dialog title
-    CString strTitle;
-	ASSERT(strTitle.LoadString(IDS_FILE_OPEN));
+	CString strTitle = LoadStringFromResource(IDS_FILE_OPEN);
     dlg.m_ofn.lpstrTitle = strTitle;
 
 	// Open the dialog and check if the user clicked OK
@@ -301,8 +298,7 @@ BOOL CDrawDoc::OnOpenDocument(LPCTSTR lpszPathName)
 	// Load the image from the specified path
 	if (FAILED(canvasImage.Load(lpszPathName)))
 	{
-		CString error;
-		ASSERT(error.LoadString(IDS_FILE_OPEN_ERROR));
+		CString error = LoadStringFromResource(IDS_FILE_OPEN_ERROR);
 		CString message;
 		message.Append(lpszPathName);
 		message.Append(error);
@@ -320,3 +316,23 @@ BOOL CDrawDoc::OnOpenDocument(LPCTSTR lpszPathName)
 	
 	return TRUE;
 }
+
+
+////////////////////////////////////////////////////////////////////////
+//                       CDrawDoc helper methods                      //
+////////////////////////////////////////////////////////////////////////
+
+CString CDrawDoc::LoadStringFromResource(UINT nID)
+{
+	CString str;
+	TCHAR buffer[MAX_PATH]{};
+	HINSTANCE hInstance = AfxGetInstanceHandle();
+
+	int len = ::LoadString(hInstance, nID, buffer, _countof(buffer));
+	if (len > 0)
+	{
+		str = buffer;
+	}
+	return str;
+}
+// uses LoadString macro from header winuser.h which resolves to LoadStringW or LoadStringA

@@ -54,8 +54,6 @@ END_MESSAGE_MAP()
 // CDrawView construction/destruction
 
 CDrawView::CDrawView() noexcept :
-	drawingMode{ TRUE },
-	resizingMode{ FALSE },
 	canvasRect{ 0, 0, 0, 0 },
 	resizeHandleRect{ 0, 0, 0, 0 },
 	paddingHorizontal { 0 },
@@ -327,8 +325,6 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 	// Clicked inside the resize handle
 	if (adjustedResizeHandleRect.PtInRect(point))
 	{
-		resizingMode = TRUE;
-		drawingMode = FALSE;
 		Invalidate();  // Prepare DC for resizing.
 
 		CRectTracker rectTracker;
@@ -351,9 +347,6 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 			CSize canvasSize = pDoc->GetCanvasSize();
 			pMainFrame->UpdateStatusCanvasSize(canvasSize);
 		}
-
-		resizingMode = FALSE;
-		drawingMode = TRUE;
 	}
 	// Clicked outside resize handle
 	else
@@ -438,9 +431,6 @@ void CDrawView::OnRButtonDown(UINT nFlags, CPoint point)
 
 void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 {
-	if (!drawingMode)  // If drawing is not in progress, do nothing.
-		return;
-
 	CDrawDoc* pDoc = GetDocument();
 	// Get the DC on which to draw
 	CDC& canvasDC = *pDoc->GetCanvasDC();
@@ -617,27 +607,6 @@ void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 
 		pDC->SetViewportOrg(0, 0);
 		pDC->SetViewportExt(clientRect.Width(), clientRect.Height());
-
-		if (resizingMode == TRUE)
-		{
-			// If not drawing, remove the clipping region that is set to canvas only
-			bkgDC.SelectClipRgn(NULL);
-		}
-		else if (drawingMode == TRUE)
-		{
-			const CSize& canvasSize = GetDocument()->GetCanvasSize();
-
-			// If drawing, set the clipping region to the canvas rectangle
-			CRect clipRect(
-				paddingHorizontal,                   // left
-				paddingVertical,                     // top
-				paddingHorizontal + canvasSize.cx,   // right
-				paddingVertical   + canvasSize.cy);  // bottom
-
-			CRgn clipRgn;
-			clipRgn.CreateRectRgnIndirect(&clipRect);
-			bkgDC.SelectClipRgn(&clipRgn);
-		}
 	}  // End if-else
 }
 

@@ -7,8 +7,6 @@
 class CDrawView : public CScrollView, public DrawingTool::ToolObserver
 {
 // Private data members
-	BOOL drawingMode;
-	BOOL resizingMode;
 	CRect canvasRect;
 	CRect resizeHandleRect;
 	int paddingHorizontal;

@@ -22,11 +22,14 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWndEx)
 	ON_COMMAND(ID_FILE_PRINT_DIRECT, &CMainFrame::OnFilePrint)
 	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CMainFrame::OnFilePrintPreview)
 	ON_UPDATE_COMMAND_UI(ID_FILE_PRINT_PREVIEW, &CMainFrame::OnUpdateFilePrintPreview)
+	ON_UPDATE_COMMAND_UI(ID_STATUSBAR_PANE1, &CMainFrame::OnUpdateStatusBarPane1)
+	ON_UPDATE_COMMAND_UI(ID_STATUSBAR_PANE2, &CMainFrame::OnUpdateStatusBarPane2)
 END_MESSAGE_MAP()
 
 // CMainFrame construction/destruction
 
 CMainFrame::CMainFrame() noexcept
+	: curCoordinates{ -1, -1 }
 {
 	// TODO: add member initialization code here
 }
@@ -62,8 +65,11 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	ASSERT(bNameValid);
 	bNameValid = strTitlePane2.LoadString(IDS_STATUS_PANE2);
 	ASSERT(bNameValid);
-	m_wndStatusBar.AddElement(new CMFCRibbonStatusBarPane(ID_STATUSBAR_PANE1, strTitlePane1, TRUE), strTitlePane1);
-	m_wndStatusBar.AddExtendedElement(new CMFCRibbonStatusBarPane(ID_STATUSBAR_PANE2, strTitlePane2, TRUE), strTitlePane2);
+
+	// Create panes with AlmostLargeText argument to set minimum width
+	m_wndStatusBar.AddElement(new CMFCRibbonStatusBarPane(ID_STATUSBAR_PANE1, strTitlePane1, TRUE, NULL, strTitlePane1), strTitlePane1);
+	m_wndStatusBar.AddSeparator();
+	m_wndStatusBar.AddElement(new CMFCRibbonStatusBarPane(ID_STATUSBAR_PANE2, strTitlePane2, TRUE, NULL, strTitlePane2), strTitlePane2);
 
 	// enable Visual Studio 2005 style docking window behavior
 	CDockingManager::SetDockingMode(DT_SMART);
@@ -124,4 +130,25 @@ void CMainFrame::OnFilePrintPreview()
 void CMainFrame::OnUpdateFilePrintPreview(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(IsPrintPreview());
+}
+
+void CMainFrame::OnUpdateStatusBarPane1(CCmdUI* pCmdUI)
+{
+	CString strText;
+	if (curCoordinates.x == -1 && curCoordinates.y == -1)
+	{
+		strText = _T("");
+	}
+	else
+	{
+		strText.Format(_T("%d, %dpx"), curCoordinates.x, curCoordinates.y);
+	}
+	pCmdUI->SetText(strText);
+}
+
+void CMainFrame::OnUpdateStatusBarPane2(CCmdUI* pCmdUI)
+{
+	CString strText;
+	strText.Format(_T("%d x %dpx"), canvasSize.cx, canvasSize.cy);
+	pCmdUI->SetText(strText);
 }

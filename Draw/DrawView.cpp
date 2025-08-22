@@ -66,9 +66,9 @@ CDrawView::CDrawView() noexcept :
 	backColor{ RGB(255, 255, 255) },  // white
 	sizeIndex{ 0 },
 	currentTool{ CreatePenTool(sizeIndex, foreColor, backColor)},  // Default tool is Pen
-	activeControlCommandID{ ID_BUTTON_PEN }
+	activeControlCommandID{ ID_BUTTON_PEN },
+	curCoordinates{ -1, -1 }
 {
-	// TODO: add construction code here
 }
 
 CDrawView::~CDrawView()
@@ -237,6 +237,8 @@ void CDrawView::OnInitialUpdate()
 	// window. This is needed to instantly update the ribbon on File>New to reflect changes in
 	// color buttons. Must be here at the bottom, otherwise - error.
 	pMainFrame->m_wndRibbonBar.ForceRecalcLayout();
+
+	pMainFrame->UpdateStatusCanvasSize(canvasSize);
 }
 
 
@@ -344,12 +346,16 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 
 			// Update the scroll sizes and redraw the view
 			pDoc->UpdateAllViews(NULL, 1, NULL);
+
+			CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
+			CSize canvasSize = pDoc->GetCanvasSize();
+			pMainFrame->UpdateStatusCanvasSize(canvasSize);
 		}
 
 		resizingMode = FALSE;
 		drawingMode = TRUE;
 	}
-	// Clicked inside the canvas
+	// Clicked outside resize handle
 	else
 	{
 		CPoint scrollPos = GetScrollPosition();
@@ -365,7 +371,7 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 		// Get the DC on which to draw
 		CDC& canvasDC = *pDoc->GetCanvasDC();
 
-		// Adjust point to canvas top-left (0, 0) coordinates
+		// Convert from client to canvas coordinates
 		point.Offset(-paddingHorizontal, -paddingVertical);
 
 		// Let the tool handle the mouse event
@@ -415,7 +421,7 @@ void CDrawView::OnRButtonDown(UINT nFlags, CPoint point)
 		// Get the DC on which to draw
 		CDC& canvasDC = *pDoc->GetCanvasDC();
 
-		// Adjust point to canvas top-left (0, 0) coordinates
+		// Convert from client to canvas coordinates
 		point.Offset(-paddingHorizontal, -paddingVertical);
 
 		// Let the tool handle the mouse event
@@ -442,11 +448,26 @@ void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 	CPoint scrollPos = GetScrollPosition();
 	point.Offset(scrollPos.x, scrollPos.y);  // Offset the point by the scroll position
 
-	// Adjust point to canvas top-left (0, 0) coordinates
+	// Convert from client to canvas coordinates
 	point.Offset(-paddingHorizontal, -paddingVertical);
 
 	// Let the tool handle the mouse event
 	currentTool->OnMouseMove(&canvasDC, point);
+
+	// Notify main frame
+	CRect adjustedCanvasRect = canvasRect;
+	adjustedCanvasRect.OffsetRect(-paddingHorizontal, -paddingVertical);
+
+	if (adjustedCanvasRect.PtInRect(point))
+	{
+		curCoordinates = point;
+	}
+	else
+	{
+		curCoordinates = CPoint(-1, -1);  // Ignore coordinates if outside canvas
+	}
+	CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
+	pMainFrame->UpdateStatusCurCoordinates(curCoordinates);
 
 	Invalidate();
 }
@@ -1062,3 +1083,4 @@ void CDrawView::OnSecondaryColorPicked(COLORREF color)
 	pBackColorButton->SetColor(backColor);
 	pMainFrame->m_wndRibbonBar.ForceRecalcLayout();
 }
+

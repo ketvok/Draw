@@ -221,6 +221,8 @@
     <Image Include="res\filelarge.bmp" />
     <Image Include="res\filesmall.bmp" />
     <Image Include="res\fills.bmp" />
+    <Image Include="res\IconCoordinates.bmp" />
+    <Image Include="res\IconCoordinates.ico" />
     <Image Include="res\main.bmp" />
     <Image Include="res\outlines.bmp" />
     <Image Include="res\shapes.bmp" />

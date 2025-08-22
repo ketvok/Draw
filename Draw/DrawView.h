@@ -4,7 +4,7 @@
 #pragma once
 #include "Tool.h"
 
-class CDrawView : public CScrollView, public DrawingTool::Observer
+class CDrawView : public CScrollView, public DrawingTool::ToolObserver
 {
 // Private data members
 	BOOL drawingMode;
@@ -22,6 +22,7 @@ class CDrawView : public CScrollView, public DrawingTool::Observer
 	CBitmap bkgBitmap;
 	std::shared_ptr<DrawingTool> currentTool;
 	int activeControlCommandID;
+	CPoint curCoordinates;
 
 protected: // create from serialization only
 	CDrawView() noexcept;

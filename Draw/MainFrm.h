@@ -5,6 +5,9 @@
 
 class CMainFrame : public CFrameWndEx
 {
+private:
+	CPoint curCoordinates;
+	CSize canvasSize;
 	
 protected: // create from serialization only
 	CMainFrame() noexcept;
@@ -28,6 +31,8 @@ public:
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
 #endif
+	void UpdateStatusCurCoordinates(CPoint point) { curCoordinates = point; }
+	void UpdateStatusCanvasSize(CSize size) { canvasSize = size; }
 
 protected:  // control bar embedded members
 	CMFCRibbonApplicationButton m_MainButton;
@@ -40,6 +45,8 @@ protected:
 	afx_msg void OnFilePrint();
 	afx_msg void OnFilePrintPreview();
 	afx_msg void OnUpdateFilePrintPreview(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateStatusBarPane1(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateStatusBarPane2(CCmdUI* pCmdUI);
 	DECLARE_MESSAGE_MAP()
 
 public:

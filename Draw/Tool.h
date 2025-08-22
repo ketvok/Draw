@@ -9,7 +9,7 @@ public:
 	/// Observer interface for tools that need to communicate back to the view.
 	/// Currently used by ColorPickerTool to notify color changes.
 	/// </summary>
-	class Observer
+	class ToolObserver
 	{
 	public:
 		virtual void OnPrimaryColorPicked(COLORREF color) = 0;
@@ -17,12 +17,12 @@ public:
 	};
 
 protected:
-	Observer* observer = nullptr;
+	ToolObserver* observer = nullptr;
 
 public:
 	virtual ~DrawingTool() = default;
 
-	virtual void SetObserver(Observer* observer) { this->observer = observer; }
+	virtual void SetObserver(ToolObserver* observer) { this->observer = observer; }
 
 	// Core functionality
 	virtual void OnLButtonDown(CDC* pDC, const CPoint& point) = 0;

@@ -4,8 +4,6 @@
 //
 #define IDD_ABOUTBOX                    100
 #define IDP_OLE_INIT_FAILED             100
-#define IDS_FORECOLOR_LABEL             101
-#define IDS_BACKCOLOR_LABEL             102
 #define IDS_DEFAULT_FILE_NAME           103
 #define IDS_FILE_SAVE_AS                104
 #define IDS_FILE_OPEN                   105

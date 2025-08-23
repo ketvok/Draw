@@ -32,13 +32,7 @@ END_MESSAGE_MAP()
 
 CDrawApp::CDrawApp() noexcept
 {
-
-	// TODO: replace application ID string below with unique ID string; recommended
-	// format for string is CompanyName.ProductName.SubProduct.VersionInformation
 	SetAppID(_T("Draw.AppID.NoVersion"));
-
-	// TODO: add construction code here,
-	// Place all significant initialization in InitInstance
 }
 
 // The one and only CDrawApp object
@@ -80,8 +74,6 @@ BOOL CDrawApp::InitInstance()
 	// of your final executable, you should remove from the following
 	// the specific initialization routines you do not need
 	// Change the registry key under which our settings are stored
-	// TODO: You should modify this string to be something appropriate
-	// such as the name of your company or organization
 	SetRegistryKey(_T("Local AppWizard-Generated Applications"));
 	LoadStdProfileSettings(4);  // Load standard INI file options (including MRU)
 
@@ -128,7 +120,6 @@ BOOL CDrawApp::InitInstance()
 
 int CDrawApp::ExitInstance()
 {
-	//TODO: handle additional resources you may have added
 	AfxOleTerm(FALSE);
 
 	return CWinAppEx::ExitInstance();

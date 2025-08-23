@@ -75,9 +75,6 @@ CDrawView::~CDrawView()
 
 BOOL CDrawView::PreCreateWindow(CREATESTRUCT& cs)
 {
-	// TODO: Modify the Window class or styles here by modifying
-	//  the CREATESTRUCT cs
-
 	return CScrollView::PreCreateWindow(cs);
 }
 
@@ -265,12 +262,12 @@ BOOL CDrawView::OnPreparePrinting(CPrintInfo* pInfo)
 
 void CDrawView::OnBeginPrinting(CDC* /*pDC*/, CPrintInfo* /*pInfo*/)
 {
-	// TODO: add extra initialization before printing
+	// Extra initialization before printing
 }
 
 void CDrawView::OnEndPrinting(CDC* /*pDC*/, CPrintInfo* /*pInfo*/)
 {
-	// TODO: add cleanup after printing
+	// Cleanup after printing
 }
 
 void CDrawView::OnContextMenu(CWnd* /* pWnd */, CPoint point)
@@ -576,9 +573,6 @@ void CDrawView::OnRButtonUp(UINT /* nFlags */, CPoint point)
 	ReleaseCapture();
 
 	currentTool->OnRButtonUp();
-
-	//ClientToScreen(&point);
-	//OnContextMenu(this, point);
 }
 
 void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)

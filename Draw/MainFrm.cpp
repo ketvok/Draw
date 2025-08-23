@@ -31,7 +31,6 @@ END_MESSAGE_MAP()
 CMainFrame::CMainFrame() noexcept
 	: curCoordinates{ -1, -1 }
 {
-	// TODO: add member initialization code here
 }
 
 CMainFrame::~CMainFrame()
@@ -87,8 +86,6 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 {
 	if( !CFrameWndEx::PreCreateWindow(cs) )
 		return FALSE;
-	// TODO: Modify the Window class or styles here by modifying
-	//  the CREATESTRUCT cs
 
 	return TRUE;
 }

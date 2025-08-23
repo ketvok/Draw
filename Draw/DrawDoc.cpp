@@ -335,4 +335,3 @@ CString CDrawDoc::LoadStringFromResource(UINT nID)
 	}
 	return str;
 }
-// uses LoadString macro from header winuser.h which resolves to LoadStringW or LoadStringA

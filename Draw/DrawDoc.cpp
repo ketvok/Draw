@@ -153,6 +153,7 @@ void CDrawDoc::DeleteContents()
 BOOL CDrawDoc::DoSave(LPCTSTR lpszPathName, BOOL bReplace)
 {
 	CString newName = lpszPathName;
+	CDrawApp* pApp = DYNAMIC_DOWNCAST(CDrawApp, AfxGetApp());
 
 	// If no path name is provided or we're doing a "Save As" operation
 	if (newName.IsEmpty() || !bReplace)
@@ -165,7 +166,7 @@ BOOL CDrawDoc::DoSave(LPCTSTR lpszPathName, BOOL bReplace)
 			_T("GIF (*.gif)|*.gif|")
 			_T("TIFF (*.tiff)|*.tiff||");
 
-		CString filename = LoadStringFromResource(IDS_DEFAULT_FILE_NAME);
+		CString filename = pApp->LoadStringFromResource(IDS_DEFAULT_FILE_NAME);
 
 		// Create file dialog for saving
 		CFileDialog dlg(FALSE,	// FALSE = Save As dialog
@@ -179,7 +180,7 @@ BOOL CDrawDoc::DoSave(LPCTSTR lpszPathName, BOOL bReplace)
 		dlg.m_ofn.nFilterIndex = 1;
 
 		// Set dialog title
-		CString strTitle = LoadStringFromResource(IDS_FILE_SAVE_AS);
+		CString strTitle = pApp->LoadStringFromResource(IDS_FILE_SAVE_AS);
 		dlg.m_ofn.lpstrTitle = strTitle;
 
 		// Open the dialog and check if the user clicked OK
@@ -256,6 +257,8 @@ BOOL CDrawDoc::OnSaveDocument(LPCTSTR lpszPathName)
 
 void CDrawDoc::OnFileOpen() // ON COMMAND ID_FILE_OPEN
 {
+	CDrawApp* pApp = DYNAMIC_DOWNCAST(CDrawApp, AfxGetApp());
+
 	CString strFilter =
 		_T("PNG (*.png)|*.png|")
 		_T("JPEG (*.jpg;*.jpeg)|*.jpg|")
@@ -277,7 +280,7 @@ void CDrawDoc::OnFileOpen() // ON COMMAND ID_FILE_OPEN
 	dlg.m_ofn.nFilterIndex = 6;
 
 	// Set dialog title
-	CString strTitle = LoadStringFromResource(IDS_FILE_OPEN);
+	CString strTitle = pApp->LoadStringFromResource(IDS_FILE_OPEN);
     dlg.m_ofn.lpstrTitle = strTitle;
 
 	// Open the dialog and check if the user clicked OK
@@ -292,13 +295,15 @@ void CDrawDoc::OnFileOpen() // ON COMMAND ID_FILE_OPEN
 
 BOOL CDrawDoc::OnOpenDocument(LPCTSTR lpszPathName)
 {
+	CDrawApp* pApp = DYNAMIC_DOWNCAST(CDrawApp, AfxGetApp());
+
 	if (!CDocument::OnOpenDocument(lpszPathName))
 		return FALSE;
 	
 	// Load the image from the specified path
 	if (FAILED(canvasImage.Load(lpszPathName)))
 	{
-		CString error = LoadStringFromResource(IDS_FILE_OPEN_ERROR);
+		CString error = pApp->LoadStringFromResource(IDS_FILE_OPEN_ERROR);
 		CString message;
 		message.Append(lpszPathName);
 		message.Append(error);
@@ -315,23 +320,4 @@ BOOL CDrawDoc::OnOpenDocument(LPCTSTR lpszPathName)
 	canvasSize = CSize(canvasImage.GetWidth(), canvasImage.GetHeight());
 	
 	return TRUE;
-}
-
-
-////////////////////////////////////////////////////////////////////////
-//                       CDrawDoc helper methods                      //
-////////////////////////////////////////////////////////////////////////
-
-CString CDrawDoc::LoadStringFromResource(UINT nID)
-{
-	CString str;
-	TCHAR buffer[MAX_PATH]{};
-	HINSTANCE hInstance = AfxGetInstanceHandle();
-
-	int len = ::LoadString(hInstance, nID, buffer, _countof(buffer));
-	if (len > 0)
-	{
-		str = buffer;
-	}
-	return str;
 }

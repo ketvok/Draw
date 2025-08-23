@@ -13,10 +13,12 @@
 #include "DrawView.h"
 #include <cmath>
 #include "MainFrm.h"
+#include "ResizeDialog.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+#include <stdexcept>
 
 
 // CDrawView
@@ -49,6 +51,7 @@ BEGIN_MESSAGE_MAP(CDrawView, CScrollView)
 	ON_WM_RBUTTONDOWN()
 	ON_COMMAND(ID_BUTTON_COLOR_PICKER, &CDrawView::OnButtonColorPicker)
 	ON_UPDATE_COMMAND_UI(ID_BUTTON_COLOR_PICKER, &CDrawView::OnUpdateButtonColorPicker)
+	ON_COMMAND(ID_BUTTON_RESIZE, &CDrawView::OnButtonResize)
 END_MESSAGE_MAP()
 
 // CDrawView construction/destruction
@@ -322,8 +325,6 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 	// Clicked inside the resize handle
 	if (adjustedResizeHandleRect.PtInRect(point))
 	{
-		Invalidate();  // Prepare DC for resizing.
-
 		CRectTracker rectTracker;
 
 		// Define startPoint for the rubber band tracker and adjust it by the scroll position
@@ -1047,3 +1048,30 @@ void CDrawView::OnSecondaryColorPicked(COLORREF color)
 	pMainFrame->m_wndRibbonBar.ForceRecalcLayout();
 }
 
+
+void CDrawView::OnButtonResize()
+{
+	ResizeDialog dlg;
+	CDrawDoc* pDoc = GetDocument();
+	dlg.newWidth = pDoc->GetCanvasSize().cx;
+	dlg.newHeight = pDoc->GetCanvasSize().cy;
+
+	if (dlg.DoModal() == IDOK)
+	{
+		CRect newCanvasRectSize;
+		newCanvasRectSize.SetRect(
+			0,
+			0,
+			dlg.newWidth,
+			dlg.newHeight
+		);
+
+		trackRect = newCanvasRectSize;
+
+		pDoc->SetModifiedFlag(TRUE);
+		pDoc->UpdateAllViews(NULL, 1, NULL);
+		CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
+		CSize canvasSize = pDoc->GetCanvasSize();
+		pMainFrame->UpdateStatusCanvasSize(canvasSize);
+	}
+}

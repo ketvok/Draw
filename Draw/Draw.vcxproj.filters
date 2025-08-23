@@ -57,6 +57,9 @@
     <ClInclude Include="ColorPickerTool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ResizeDialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Draw.cpp">
@@ -75,6 +78,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Tool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ResizeDialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -133,6 +139,21 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="res\sizes1358.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\IconCoordinates.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\IconCoordinates.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\resize_horizontal.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\resize_vertical.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\resize.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

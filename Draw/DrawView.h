@@ -12,7 +12,7 @@ class CDrawView : public CScrollView, public DrawingTool::ToolObserver
 	int paddingHorizontal;
 	int paddingVertical;
 	BOOL bitmapInitialized;
-	CRect trackRect;
+	CRect trackRect;  // For keeping track of canvas size during resizing
 	COLORREF foreColor;
 	COLORREF backColor;
 	int sizeIndex;
@@ -88,6 +88,7 @@ public:
 	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnButtonColorPicker();
 	afx_msg void OnUpdateButtonColorPicker(CCmdUI* pCmdUI);
+	afx_msg void OnButtonResize();
 };
 
 #ifndef _DEBUG  // debug version in DrawView.cpp

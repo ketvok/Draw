@@ -190,6 +190,7 @@
     <ClInclude Include="BrushTool.h" />
     <ClInclude Include="FillTool.h" />
     <ClInclude Include="PenTool.h" />
+    <ClInclude Include="ResizeDialog.h" />
     <ClInclude Include="Tool.h" />
     <ClInclude Include="DrawView.h" />
     <ClInclude Include="framework.h" />
@@ -201,6 +202,7 @@
   <ItemGroup>
     <ClCompile Include="Draw.cpp" />
     <ClCompile Include="DrawDoc.cpp" />
+    <ClCompile Include="ResizeDialog.cpp" />
     <ClCompile Include="Tool.cpp" />
     <ClCompile Include="DrawView.cpp" />
     <ClCompile Include="MainFrm.cpp" />
@@ -225,6 +227,9 @@
     <Image Include="res\IconCoordinates.ico" />
     <Image Include="res\main.bmp" />
     <Image Include="res\outlines.bmp" />
+    <Image Include="res\resize.png" />
+    <Image Include="res\resize_horizontal.ico" />
+    <Image Include="res\resize_vertical.ico" />
     <Image Include="res\shapes.bmp" />
     <Image Include="res\shapes24.bmp" />
     <Image Include="res\sizes1234.bmp" />

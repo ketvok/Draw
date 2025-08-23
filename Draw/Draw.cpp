@@ -190,3 +190,18 @@ void CDrawApp::SaveCustomState()
 
 
 
+// Helper methods
+
+CString CDrawApp::LoadStringFromResource(UINT nID)
+{
+	CString str;
+	TCHAR buffer[MAX_PATH]{};
+	HINSTANCE hInstance = AfxGetInstanceHandle();
+
+	int len = ::LoadString(hInstance, nID, buffer, _countof(buffer));
+	if (len > 0)
+	{
+		str = buffer;
+	}
+	return str;
+}

@@ -5,6 +5,7 @@
 #include "BrushTool.h"
 #include "FillTool.h"
 #include "ColorPickerTool.h"
+#include "RectTool.h"
 #include <stdexcept>
 #include <vector>
 #include <gdiplus.h>
@@ -34,6 +35,11 @@ std::unique_ptr<DrawingTool> CreateFillTool(COLORREF color1, COLORREF color2)
 std::unique_ptr<DrawingTool> CreateColorPickerTool()
 {
 	return std::make_unique<ColorPickerTool>();
+}
+
+std::unique_ptr<DrawingTool> CreateRectTool(int selectedShape, shapeOutline outline, shapeFill fill, int size, COLORREF color1, COLORREF color2)
+{
+	return std::make_unique<RectTool>(selectedShape, outline, fill, size, color1, color2);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -507,4 +513,117 @@ void ColorPickerTool::OnRButtonDown(CDC* pDC, const CPoint& point)
 {
 	COLORREF color = pDC->GetPixel(point.x, point.y);
 	if (observer) observer->OnSecondaryColorPicked(color);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// RectTool class implementation
+
+RectTool::RectTool(
+	int selectedShape, shapeOutline outline, shapeFill fill, int size, COLORREF color1, COLORREF color2)
+	    : selectedShape{ selectedShape }, outline{ outline }, fill{ fill }, size{ size }, color1{ color1 }, color2{ color2 }
+{
+	SetSizeByIndex(size);
+}
+
+void RectTool::DrawShapeOnLButtonDown(CDC* pDC, const CRect& rc)
+{
+	CPen pen;
+	CBrush brush;
+	CPen* pOldPen = nullptr;
+	CBrush* pOldBrush = nullptr;
+	COLORREF outlineColor = color1;
+	COLORREF fillColor = color2;
+
+	if (outline != NO_OUTLINE) // If shape has outline
+	{
+		pen.CreatePen(PS_SOLID, size, outlineColor);
+		pOldPen = pDC->SelectObject(&pen);
+	}
+	else
+	{
+		pOldPen = (CPen*)pDC->SelectStockObject(NULL_PEN);
+	}
+
+	if (fill != NO_FILL)  // If shape has fill
+	{
+		brush.CreateSolidBrush(fillColor);
+		pOldBrush = pDC->SelectObject(&brush);
+	}
+	else
+	{
+		pOldBrush = (CBrush*)pDC->SelectStockObject(NULL_BRUSH);
+	}
+
+	switch (selectedShape)
+	{
+	case ELLIPSE:
+		pDC->Ellipse(rc);
+		break;
+	case RECTANGLE:
+		pDC->Rectangle(rc);
+		break;
+	case ROUNDED_RECTANGLE:
+		pDC->RoundRect(rc, CPoint(20, 20));
+		break;
+	}
+
+	// Cleanup
+	if (pOldPen) pDC->SelectObject(pOldPen);
+	if (pOldBrush) pDC->SelectObject(pOldBrush);
+}
+
+void RectTool::DrawShapeOnRButtonDown(CDC* pDC, const CRect& rc)
+{
+	CPen pen;
+	CBrush brush;
+	CPen* pOldPen = nullptr;
+	CBrush* pOldBrush = nullptr;
+	COLORREF outlineColor = color2; // Swap colors for right button
+	COLORREF fillColor = color1;
+
+	if (outline != NO_OUTLINE) // If shape has outline
+	{
+		pen.CreatePen(PS_SOLID, size, outlineColor);
+		pOldPen = pDC->SelectObject(&pen);
+	}
+	else
+	{
+		pOldPen = (CPen*)pDC->SelectStockObject(NULL_PEN);
+	}
+
+	if (fill != NO_FILL)  // If shape has fill
+	{
+		brush.CreateSolidBrush(fillColor);
+		pOldBrush = pDC->SelectObject(&brush);
+	}
+	else
+	{
+		pOldBrush = (CBrush*)pDC->SelectStockObject(NULL_BRUSH);
+	}
+
+	switch (selectedShape)
+	{
+	case ELLIPSE:
+		pDC->Ellipse(rc);
+		break;
+	case RECTANGLE:
+		pDC->Rectangle(rc);
+		break;
+	case ROUNDED_RECTANGLE:
+		pDC->RoundRect(rc, CPoint(20, 20));
+		break;
+	}
+
+	// Cleanup
+	if (pOldPen) pDC->SelectObject(pOldPen);
+	if (pOldBrush) pDC->SelectObject(pOldBrush);
+}
+
+void RectTool::SetSizeByIndex(int index)
+{
+	// Convert the index to the outline size
+	std::vector<int> shapeSizes{ 1, 3, 5, 8 };
+	ASSERT(index >= 0 && index < shapeSizes.size());
+	size = shapeSizes[index];
 }

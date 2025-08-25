@@ -30,8 +30,6 @@
 #define IDR_RIBBON                      307
 #define IDB_SHAPES                      310
 #define IDB_SIZES1234                   311
-#define IDB_OUTLINES                    312
-#define IDB_FILLS                       313
 #define IDB_SIZES46810                  314
 #define IDC_PEN_CURSOR                  315
 #define IDC_ERASER_CURSOR               316
@@ -41,6 +39,7 @@
 #define IDC_COLOR_PICKER_CURSOR         321
 #define IDI_RESIZE_HORZ                 326
 #define IDI_RESIZE_VERT                 327
+#define IDC_SHAPES_CURSOR               329
 #define IDC_EDIT_WIDTH                  1000
 #define IDC_EDIT_HEIGHT                 1001
 #define ID_WRITE_PASTEASHYPERLINK       32770
@@ -57,13 +56,19 @@
 #define ID_BUTTON_FILL                  32806
 #define ID_BUTTON_COLOR_PICKER          32808
 #define ID_BUTTON_RESIZE                32809
+#define ID_BUTTON_SHAPE_OUTLINE         32812
+#define ID_BUTTON_SHAPE_FILL            32825
+#define ID_BUTTON_OUTLINE_NO_OUTLINE    32826
+#define ID_BUTTON_OUTLINE_SOLID_COLOR   32827
+#define ID_BUTTON_FILL_NO_FILL          32828
+#define ID_BUTTON_FILL_SOLID_COLOR      32829
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        329
-#define _APS_NEXT_COMMAND_VALUE         32810
+#define _APS_NEXT_RESOURCE_VALUE        330
+#define _APS_NEXT_COMMAND_VALUE         32830
 #define _APS_NEXT_CONTROL_VALUE         1002
 #define _APS_NEXT_SYMED_VALUE           319
 #endif

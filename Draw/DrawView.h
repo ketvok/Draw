@@ -21,6 +21,9 @@ class CDrawView : public CScrollView, public DrawingTool::ToolObserver
 	std::shared_ptr<DrawingTool> currentTool;
 	int activeControlCommandID;
 	CPoint curCoordinates;
+	int selectedShape;
+	shapeOutline shapeOutline;
+	shapeFill shapeFill;
 
 protected: // create from serialization only
 	CDrawView() noexcept;
@@ -59,6 +62,7 @@ public:
 protected:
 // Helper methods
 	void UpdateClientArea();
+	void DeselectShapes();
 
 // Generated message map functions
 protected:
@@ -89,6 +93,19 @@ public:
 	afx_msg void OnButtonColorPicker();
 	afx_msg void OnUpdateButtonColorPicker(CCmdUI* pCmdUI);
 	afx_msg void OnButtonResize();
+	afx_msg void OnGalleryShapes();
+	afx_msg void OnButtonShapeOutline();
+	afx_msg void OnButtonShapeFill();
+	afx_msg void OnButtonShapeOutlineNoOutline();
+	afx_msg void OnButtonShapeOutlineSolidColor();
+	afx_msg void OnButtonShapeFillNoFill();
+	afx_msg void OnButtonShapeFillSolidColor();
+	afx_msg void OnUpdateButtonShapeOutline(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateButtonShapeFill(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateButtonOutlineNoOutline(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateButtonOutlineSolidColor(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateButtonFillNoFill(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateButtonFillSolidColor(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in DrawView.cpp

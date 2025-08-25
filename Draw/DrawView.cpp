@@ -52,6 +52,19 @@ BEGIN_MESSAGE_MAP(CDrawView, CScrollView)
 	ON_COMMAND(ID_BUTTON_COLOR_PICKER, &CDrawView::OnButtonColorPicker)
 	ON_UPDATE_COMMAND_UI(ID_BUTTON_COLOR_PICKER, &CDrawView::OnUpdateButtonColorPicker)
 	ON_COMMAND(ID_BUTTON_RESIZE, &CDrawView::OnButtonResize)
+	ON_COMMAND(ID_GALLERY_SHAPES, &CDrawView::OnGalleryShapes)
+	ON_COMMAND(ID_BUTTON_SHAPE_OUTLINE, &CDrawView::OnButtonShapeOutline)
+	ON_COMMAND(ID_BUTTON_SHAPE_FILL, &CDrawView::OnButtonShapeFill)
+	ON_COMMAND(ID_BUTTON_OUTLINE_NO_OUTLINE, &CDrawView::OnButtonShapeOutlineNoOutline)
+	ON_COMMAND(ID_BUTTON_OUTLINE_SOLID_COLOR, &CDrawView::OnButtonShapeOutlineSolidColor)
+	ON_COMMAND(ID_BUTTON_FILL_NO_FILL, &CDrawView::OnButtonShapeFillNoFill)
+	ON_COMMAND(ID_BUTTON_FILL_SOLID_COLOR, &CDrawView::OnButtonShapeFillSolidColor)
+	ON_UPDATE_COMMAND_UI(ID_BUTTON_SHAPE_OUTLINE, &CDrawView::OnUpdateButtonShapeOutline)
+	ON_UPDATE_COMMAND_UI(ID_BUTTON_SHAPE_FILL, &CDrawView::OnUpdateButtonShapeFill)
+	ON_UPDATE_COMMAND_UI(ID_BUTTON_OUTLINE_NO_OUTLINE, &CDrawView::OnUpdateButtonOutlineNoOutline)
+	ON_UPDATE_COMMAND_UI(ID_BUTTON_OUTLINE_SOLID_COLOR, &CDrawView::OnUpdateButtonOutlineSolidColor)
+	ON_UPDATE_COMMAND_UI(ID_BUTTON_FILL_NO_FILL, &CDrawView::OnUpdateButtonFillNoFill)
+	ON_UPDATE_COMMAND_UI(ID_BUTTON_FILL_SOLID_COLOR, &CDrawView::OnUpdateButtonFillSolidColor)
 END_MESSAGE_MAP()
 
 // CDrawView construction/destruction
@@ -68,7 +81,10 @@ CDrawView::CDrawView() noexcept :
 	sizeIndex{ 0 },
 	currentTool{ CreatePenTool(sizeIndex, foreColor, backColor)},  // Default tool is Pen
 	activeControlCommandID{ ID_BUTTON_PEN },
-	curCoordinates{ -1, -1 }
+	curCoordinates{ -1, -1 },
+	selectedShape{ 0 },
+	shapeOutline{ SOLID_COLOR_OUTLINE },
+	shapeFill{ NO_FILL }
 {
 }
 
@@ -310,20 +326,13 @@ CDrawDoc* CDrawView::GetDocument() const // non-debug version is inline
 
 void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 {
-	// Capture the mouse input to this window so that it receives all
-	// mouse messages. This is necessary to receive mouse-move messages
-	// past the edge of the window.
-
-	CPoint scrollPos = GetScrollPosition();  // Get current scroll position
-	
-	// Offset the reize handle rectagle by the scroll position
-	CRect adjustedResizeHandleRect = resizeHandleRect;
-	adjustedResizeHandleRect.OffsetRect(-scrollPos.x, -scrollPos.y);
+	CPoint scrollPos = GetScrollPosition();
+	point.Offset(scrollPos.x, scrollPos.y); // Offset the point by the scroll position
 
 	CDrawDoc* pDoc = GetDocument();
 	
 	// Clicked inside the resize handle
-	if (adjustedResizeHandleRect.PtInRect(point))
+	if (resizeHandleRect.PtInRect(point))
 	{
 		CRectTracker rectTracker;
 
@@ -349,87 +358,109 @@ void CDrawView::OnLButtonDown(UINT nFlags, CPoint point)
 	// Clicked outside resize handle
 	else
 	{
-		CPoint scrollPos = GetScrollPosition();
-		point.Offset(scrollPos.x, scrollPos.y);  // Offset the point by the scroll position
-
-		if (!canvasRect.PtInRect(point))  // If clicked outside canvas,
+		if (canvasRect.PtInRect(point))  // Clicked inside the canvas
 		{
-			return;  // do nothing.
+			// Get the DC on which to draw
+			CDC& canvasDC = *pDoc->GetCanvasDC();
+
+			if (activeControlCommandID != ID_GALLERY_SHAPES)  // CRectTracker::TrackRubberBand used in shapes
+			{                                                 // does not work if SetCapture is used.
+				SetCapture();  // For receiving mouse messages outside the window
+
+				//Convert from client to canvas coordinates
+				point.Offset(-paddingHorizontal, -paddingVertical);
+
+				//Let the tool handle the mouse event
+				currentTool->OnLButtonDown(&canvasDC, point);
+			}
+			else  // Drawing shape
+			{
+				CRectTracker rectTracker;
+				rectTracker.m_sizeMin = CSize(1, 1);
+
+				// Undo the point offset by the scroll position because TrackRubberBand expects
+				// client coordinates.
+				CPoint scrollPos = GetScrollPosition();
+				point.Offset(-scrollPos.x, -scrollPos.y);
+
+				if (rectTracker.TrackRubberBand(this, point, TRUE)) // The mouse has moved and
+				{                                                   // the rectangle is not empty.
+					// Get the tracker rectangle in client coordinates
+					CRect rc = rectTracker.m_rect;
+
+					rc.OffsetRect(scrollPos.x, scrollPos.y); // Offset the rect by the scroll position
+					rc.OffsetRect(-paddingHorizontal, -paddingVertical); // Convert from client to canvas coordinates
+
+					currentTool->DrawShapeOnLButtonDown(&canvasDC, rc);
+				}
+			}
+
+			if (activeControlCommandID != ID_BUTTON_COLOR_PICKER)  // Color picker doesn't change
+			{                                                      // the document.
+				pDoc->SetModifiedFlag(TRUE);
+			}
 		}
-
-		SetCapture();
-
-		// Get the DC on which to draw
-		CDC& canvasDC = *pDoc->GetCanvasDC();
-
-		// Convert from client to canvas coordinates
-		point.Offset(-paddingHorizontal, -paddingVertical);
-
-		// Let the tool handle the mouse event
-		currentTool->OnLButtonDown(&canvasDC, point);
-
-		if (activeControlCommandID != ID_BUTTON_COLOR_PICKER)  // Color picker doesn't change doc
-		{
-			pDoc->SetModifiedFlag(TRUE);
-		}
-
 		Invalidate();
 	}  // End if-else
 }
 
 void CDrawView::OnRButtonDown(UINT nFlags, CPoint point)
 {
-	// Capture the mouse input to this window so that it receives all
-	// mouse messages. This is necessary to receive mouse-move messages
-	// past the edge of the window.
+	CPoint scrollPos = GetScrollPosition();
+	point.Offset(scrollPos.x, scrollPos.y); // Offset the point by the scroll position
 
-	CPoint scrollPos = GetScrollPosition();  // Get current scroll position
-
-	// Offset the reize handle rectagle by the scroll position
-	CRect adjustedResizeHandleRect = resizeHandleRect;
-	adjustedResizeHandleRect.OffsetRect(-scrollPos.x, -scrollPos.y);
-
-	CDrawDoc* pDoc = GetDocument();
-
-	// Clicked inside the resize handle
-	if (adjustedResizeHandleRect.PtInRect(point))
+	if (canvasRect.PtInRect(point))  // Clicked inside the canvas
 	{
-		return;  // Do nothing if right-clicked inside the resize handle.
-	}
-	// Clicked inside the canvas
-	else
-	{
-		CPoint scrollPos = GetScrollPosition();
-		point.Offset(scrollPos.x, scrollPos.y);  // Offset the point by the scroll position
-
-		if (!canvasRect.PtInRect(point))  // If clicked outside canvas,
-		{
-			return;  // do nothing.
-		}
-
-		SetCapture();
+		CDrawDoc* pDoc = GetDocument();
 
 		// Get the DC on which to draw
 		CDC& canvasDC = *pDoc->GetCanvasDC();
 
-		// Convert from client to canvas coordinates
-		point.Offset(-paddingHorizontal, -paddingVertical);
+		if (activeControlCommandID != ID_GALLERY_SHAPES)  // CRectTracker::TrackRubberBand used in shapes
+		{                                                 // does not work if SetCapture is used.
+			SetCapture();  // For receiving mouse messages outside the window
 
-		// Let the tool handle the mouse event
-		currentTool->OnRButtonDown(&canvasDC, point);
-		
+			//Convert from client to canvas coordinates
+			point.Offset(-paddingHorizontal, -paddingVertical);
+
+			//Let the tool handle the mouse event
+			currentTool->OnRButtonDown(&canvasDC, point);
+		}
+		else  // Drawing shape
+		{
+			CRectTracker rectTracker;
+			rectTracker.m_sizeMin = CSize(1, 1);
+
+			// Undo the point offset by the scroll position because TrackRubberBand expects
+			// client coordinates.
+			CPoint scrollPos = GetScrollPosition();
+			point.Offset(-scrollPos.x, -scrollPos.y);
+
+			if (rectTracker.TrackRubberBand(this, point, TRUE)) // The mouse has moved and
+			{                                                   // the rectangle is not empty.
+				// Get the tracker rectangle in client coordinates
+				CRect rc = rectTracker.m_rect;
+
+				rc.OffsetRect(scrollPos.x, scrollPos.y); // Offset the rect by the scroll position
+				rc.OffsetRect(-paddingHorizontal, -paddingVertical); // Convert from client to canvas coordinates
+
+				currentTool->DrawShapeOnRButtonDown(&canvasDC, rc);
+			}
+		}
+
 		if (activeControlCommandID != ID_BUTTON_COLOR_PICKER)  // Color picker doesn't change doc
 		{
 			pDoc->SetModifiedFlag(TRUE);
 		}
-
+	}
 		Invalidate();
-	}  // End if-else
 }
+
 
 void CDrawView::OnMouseMove(UINT nFlags, CPoint point)
 {
 	CDrawDoc* pDoc = GetDocument();
+
 	// Get the DC on which to draw
 	CDC& canvasDC = *pDoc->GetCanvasDC();
 
@@ -531,9 +562,16 @@ BOOL CDrawView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 			}
 			case ID_BUTTON_COLOR_PICKER:
 			{
-				HCURSOR curFill;
-				curFill = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_COLOR_PICKER_CURSOR));
-				SetCursor(curFill);
+				HCURSOR curColorPicker;
+				curColorPicker = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_COLOR_PICKER_CURSOR));
+				SetCursor(curColorPicker);
+				break;
+			}
+			case ID_GALLERY_SHAPES:
+			{
+				HCURSOR curShapes;
+				curShapes = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_SHAPES_CURSOR));
+				SetCursor(curShapes);
 				break;
 			}
 			default:
@@ -590,12 +628,12 @@ void CDrawView::OnPrepareDC(CDC* pDC, CPrintInfo* pInfo)
 	// NOT PRINTING
 	else
 	{
-		CRect clientRect; GetClientRect(&clientRect);
-		
 		if (bitmapInitialized == FALSE)
 		{
 			return;
 		}
+
+		CRect clientRect; GetClientRect(&clientRect);
 
 		pDC->SetWindowOrg(0, 0);
 		pDC->SetWindowExt(clientRect.Width(), clientRect.Height());
@@ -784,6 +822,33 @@ void CDrawView::OnUpdate(CView* /*pSender*/, LPARAM lHint, CObject* /*pHint*/)
 	Invalidate();
 }
 
+void CDrawView::OnButtonResize()
+{
+	ResizeDialog dlg;
+	CDrawDoc* pDoc = GetDocument();
+	dlg.newWidth = pDoc->GetCanvasSize().cx;
+	dlg.newHeight = pDoc->GetCanvasSize().cy;
+
+	if (dlg.DoModal() == IDOK)
+	{
+		CRect newCanvasRectSize;
+		newCanvasRectSize.SetRect(
+			0,
+			0,
+			dlg.newWidth,
+			dlg.newHeight
+		);
+
+		trackRect = newCanvasRectSize;
+
+		pDoc->SetModifiedFlag(TRUE);
+		pDoc->UpdateAllViews(NULL, 1, NULL);
+		CMainFrame* pMainFrame = DYNAMIC_DOWNCAST(CMainFrame, AfxGetMainWnd());
+		CSize canvasSize = pDoc->GetCanvasSize();
+		pMainFrame->UpdateStatusCanvasSize(canvasSize);
+	}
+}
+
 void CDrawView::OnButtonPen()
 {
 	currentTool = CreatePenTool(sizeIndex, foreColor, backColor);
@@ -839,66 +904,59 @@ void CDrawView::OnButtonColorPicker()
 	activeControlCommandID = ID_BUTTON_COLOR_PICKER;
 }
 
-void CDrawView::OnUpdateButtonPen(CCmdUI* pCmdUI)
+void CDrawView::OnGalleryShapes()
 {
-	if (activeControlCommandID == ID_BUTTON_PEN)
-	{
-		pCmdUI->SetCheck(TRUE);
-	}
-	else
-	{
-		pCmdUI->SetCheck(FALSE);
-	}
+	// Get the shape selection gallery
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
+	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SHAPES, arr);
+	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
+	
+	// Get the selected shape
+	selectedShape = pGallery->GetSelectedItem();
+	
+	currentTool = CreateRectTool(selectedShape, shapeOutline, shapeFill, sizeIndex, foreColor, backColor);
+	activeControlCommandID = ID_GALLERY_SHAPES;
+	
+	//	Get the size selection gallery
+	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> sarr;
+	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, sarr);
+	CMFCRibbonGallery* psGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, sarr[0]);
+
+	//	Set icons for shape tool sizes
+	psGallery->SetPalette(IDB_SIZES1358, 104);
 }
 
-void CDrawView::OnUpdateButtonEraser(CCmdUI* pCmdUI)
+void CDrawView::OnButtonShapeOutline()
 {
-	if (activeControlCommandID == ID_BUTTON_ERASER)
-	{
-		pCmdUI->SetCheck(TRUE);
-	}
-	else
-	{
-		pCmdUI->SetCheck(FALSE);
-	}
 }
 
-void CDrawView::OnUpdateButtonBrush(CCmdUI* pCmdUI)
+void CDrawView::OnButtonShapeFill()
 {
-	if (activeControlCommandID == ID_BUTTON_BRUSH)
-	{
-		pCmdUI->SetCheck(TRUE);
-	}
-	else
-	{
-		pCmdUI->SetCheck(FALSE);
-	}
 }
 
-void CDrawView::OnUpdateButtonFill(CCmdUI* pCmdUI)
+void CDrawView::OnButtonShapeOutlineNoOutline()
 {
-	if (activeControlCommandID == ID_BUTTON_FILL)
-	{
-		pCmdUI->SetCheck(TRUE);
-	}
-	else
-	{
-		pCmdUI->SetCheck(FALSE);
-	}
+	shapeOutline = NO_OUTLINE;
+	currentTool->SetOutline(shapeOutline);
 }
 
-void CDrawView::OnUpdateButtonColorPicker(CCmdUI* pCmdUI)
+void CDrawView::OnButtonShapeOutlineSolidColor()
 {
-	if (activeControlCommandID == ID_BUTTON_COLOR_PICKER)
-	{
-		pCmdUI->SetCheck(TRUE);
-	}
-	else
-	{
-		pCmdUI->SetCheck(FALSE);
-	}
+	shapeOutline = SOLID_COLOR_OUTLINE;
+	currentTool->SetOutline(shapeOutline);
 }
 
+void CDrawView::OnButtonShapeFillNoFill()
+{
+	shapeFill = NO_FILL;
+	currentTool->SetFill(shapeFill);
+}
+
+void CDrawView::OnButtonShapeFillSolidColor()
+{
+	shapeFill = SOLID_COLOR_FILL;
+	currentTool->SetFill(shapeFill);
+}
 
 void CDrawView::OnGallerySize()
 {
@@ -942,6 +1000,144 @@ void CDrawView::OnBackcolor()
 
 	currentTool->SetSecondaryColor(selectedColor);
 	backColor = selectedColor;
+}
+
+
+void CDrawView::OnUpdateButtonPen(CCmdUI* pCmdUI)
+{
+	if (activeControlCommandID == ID_BUTTON_PEN)
+	{
+		pCmdUI->SetCheck(TRUE);
+		DeselectShapes();
+	}
+	else
+	{
+		pCmdUI->SetCheck(FALSE);
+	}
+}
+
+void CDrawView::OnUpdateButtonEraser(CCmdUI* pCmdUI)
+{
+	if (activeControlCommandID == ID_BUTTON_ERASER)
+	{
+		pCmdUI->SetCheck(TRUE);
+		DeselectShapes();
+	}
+	else
+	{
+		pCmdUI->SetCheck(FALSE);
+	}
+}
+
+void CDrawView::OnUpdateButtonBrush(CCmdUI* pCmdUI)
+{
+	if (activeControlCommandID == ID_BUTTON_BRUSH)
+	{
+		pCmdUI->SetCheck(TRUE);
+		DeselectShapes();
+	}
+	else
+	{
+		pCmdUI->SetCheck(FALSE);
+	}
+}
+
+void CDrawView::OnUpdateButtonFill(CCmdUI* pCmdUI)
+{
+	if (activeControlCommandID == ID_BUTTON_FILL)
+	{
+		pCmdUI->SetCheck(TRUE);
+		DeselectShapes();
+	}
+	else
+	{
+		pCmdUI->SetCheck(FALSE);
+	}
+}
+
+void CDrawView::OnUpdateButtonColorPicker(CCmdUI* pCmdUI)
+{
+	if (activeControlCommandID == ID_BUTTON_COLOR_PICKER)
+	{
+		pCmdUI->SetCheck(TRUE);
+		DeselectShapes();
+	}
+	else
+	{
+		pCmdUI->SetCheck(FALSE);
+	}
+}
+
+void CDrawView::OnUpdateButtonShapeOutline(CCmdUI* pCmdUI)
+{
+	if (activeControlCommandID == ID_GALLERY_SHAPES)
+	{
+		pCmdUI->Enable(TRUE);
+	}
+	else
+	{
+		pCmdUI->Enable(FALSE);
+	}
+}
+
+void CDrawView::OnUpdateButtonShapeFill(CCmdUI* pCmdUI)
+{
+	if (activeControlCommandID == ID_GALLERY_SHAPES)
+	{
+		pCmdUI->Enable(TRUE);
+	}
+	else
+	{
+		pCmdUI->Enable(FALSE);
+	}
+}
+
+void CDrawView::OnUpdateButtonOutlineNoOutline(CCmdUI* pCmdUI)
+{
+	if (shapeOutline == NO_OUTLINE)
+	{
+		pCmdUI->SetCheck(TRUE);
+	}
+	else
+	{
+		pCmdUI->SetCheck(FALSE);
+	}
+}
+
+void CDrawView::OnUpdateButtonOutlineSolidColor(CCmdUI* pCmdUI)
+{
+	if (shapeOutline == SOLID_COLOR_OUTLINE)
+	{
+		pCmdUI->SetCheck(TRUE);
+	}
+	else
+	{
+		pCmdUI->SetCheck(FALSE);
+	}
+}
+
+void CDrawView::OnUpdateButtonFillNoFill(CCmdUI* pCmdUI)
+{
+	if (shapeFill == NO_FILL)
+	{
+		pCmdUI->SetCheck(TRUE);
+	}
+	else
+	{
+		pCmdUI->SetCheck(FALSE);
+	}
+}
+
+void CDrawView::OnUpdateButtonFillSolidColor(CCmdUI* pCmdUI)
+{
+	if (shapeFill == SOLID_COLOR_FILL)
+	{
+		pCmdUI->SetCheck(TRUE);
+	}
+	else
+	{
+		pCmdUI->SetCheck(FALSE);
+	}
 }
 
 BOOL CDrawView::OnEraseBkgnd(CDC* pDC)
@@ -1027,7 +1223,7 @@ void CDrawView::OnPrimaryColorPicked(COLORREF color)
 	foreColor = color;
 
 	// Update the foreground color button in the ribbon bar
-	CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
+	CMainFrame* pMainFrame = DYNAMIC_DOWNCAST(CMainFrame, AfxGetMainWnd());
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
 	pMainFrame->m_wndRibbonBar.GetElementsByID(ID_FORECOLOR, arr);
 	CMFCRibbonColorButton* pForeColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
@@ -1040,7 +1236,7 @@ void CDrawView::OnSecondaryColorPicked(COLORREF color)
 	backColor = color;
 
 	// Update the background color button in the ribbon bar
-	CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
+	CMainFrame* pMainFrame = DYNAMIC_DOWNCAST(CMainFrame, AfxGetMainWnd());
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
 	pMainFrame->m_wndRibbonBar.GetElementsByID(ID_BACKCOLOR, arr);
 	CMFCRibbonColorButton* pBackColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
@@ -1048,30 +1244,11 @@ void CDrawView::OnSecondaryColorPicked(COLORREF color)
 	pMainFrame->m_wndRibbonBar.ForceRecalcLayout();
 }
 
-
-void CDrawView::OnButtonResize()
+void CDrawView::DeselectShapes()
 {
-	ResizeDialog dlg;
-	CDrawDoc* pDoc = GetDocument();
-	dlg.newWidth = pDoc->GetCanvasSize().cx;
-	dlg.newHeight = pDoc->GetCanvasSize().cy;
-
-	if (dlg.DoModal() == IDOK)
-	{
-		CRect newCanvasRectSize;
-		newCanvasRectSize.SetRect(
-			0,
-			0,
-			dlg.newWidth,
-			dlg.newHeight
-		);
-
-		trackRect = newCanvasRectSize;
-
-		pDoc->SetModifiedFlag(TRUE);
-		pDoc->UpdateAllViews(NULL, 1, NULL);
-		CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
-		CSize canvasSize = pDoc->GetCanvasSize();
-		pMainFrame->UpdateStatusCanvasSize(canvasSize);
-	}
+	CMainFrame* pMainFrame = DYNAMIC_DOWNCAST(CMainFrame, AfxGetMainWnd());
+	CMFCRibbonBar* rbnBar = &pMainFrame->m_wndRibbonBar;
+	CMFCRibbonGallery* pGalleryShapes = (CMFCRibbonGallery*)rbnBar->FindByID(ID_GALLERY_SHAPES);
+	pGalleryShapes->SelectItem(-1);
 }
+

@@ -60,6 +60,9 @@
     <ClInclude Include="ResizeDialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RectTool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Draw.cpp">
@@ -177,6 +180,9 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="res\ColorPicker.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\Shapes.cur">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

@@ -2,6 +2,22 @@
 #include <afxwin.h>
 #include <memory>  // std::unique_ptr
 
+enum shape {
+	ELLIPSE = 0,
+	RECTANGLE = 1,
+	ROUNDED_RECTANGLE = 2
+};
+
+enum shapeOutline {
+	NO_OUTLINE = 0,
+	SOLID_COLOR_OUTLINE = 1
+};
+
+enum shapeFill {
+	NO_FILL = 0,
+	SOLID_COLOR_FILL = 1
+};
+
 class DrawingTool
 {
 public:
@@ -24,10 +40,8 @@ public:
 
 	virtual void SetObserver(ToolObserver* observer) { this->observer = observer; }
 
-	// Core functionality
-	virtual void OnLButtonDown(CDC* pDC, const CPoint& point) = 0;
-
 	// Optional
+	virtual void OnLButtonDown(CDC* pDC, const CPoint& point) {}
 	virtual void OnLButtonUp() {}
 	virtual void OnMouseMove(CDC* pDC, const CPoint& point) {}
 	virtual void OnRButtonDown(CDC* pDC, const CPoint& point) {}
@@ -35,6 +49,10 @@ public:
 	virtual void SetSizeByIndex(int index) {}
 	virtual void SetPrimaryColor(COLORREF color) {}
 	virtual void SetSecondaryColor(COLORREF color) {}
+	virtual void SetOutline(shapeOutline outline) {}
+	virtual void SetFill(shapeFill fill) {}
+	virtual void DrawShapeOnLButtonDown(CDC* pDC, const CRect& rc) {}
+	virtual void DrawShapeOnRButtonDown(CDC* pDC, const CRect& rc) {}
 };
 
 std::unique_ptr<DrawingTool> CreatePenTool(int size, COLORREF color1, COLORREF color2);
@@ -42,3 +60,4 @@ std::unique_ptr<DrawingTool> CreateEraserTool(int size, COLORREF color);
 std::unique_ptr<DrawingTool> CreateBrushTool(int size, COLORREF color1, COLORREF color2);
 std::unique_ptr<DrawingTool> CreateFillTool(COLORREF color1, COLORREF color2);
 std::unique_ptr<DrawingTool> CreateColorPickerTool();
+std::unique_ptr<DrawingTool> CreateRectTool(int selectedShape, shapeOutline outline, shapeFill fill, int size, COLORREF color1, COLORREF color2);

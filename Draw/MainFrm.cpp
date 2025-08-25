@@ -47,11 +47,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndRibbonBar.Create(this);
 	m_wndRibbonBar.LoadFromResource(IDR_RIBBON);
 
-	// Deselect first gallery item which is otherwise selected by default on app start
-	CMFCRibbonGallery* pGalleryShapes = (CMFCRibbonGallery*)m_wndRibbonBar.FindByID(ID_GALLERY_SHAPES);
-	pGalleryShapes->SelectItem(-1);
-
-
 	if (!m_wndStatusBar.Create(this))
 	{
 		TRACE0("Failed to create status bar\n");

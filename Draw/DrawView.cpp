@@ -179,11 +179,11 @@ void CDrawView::OnInitialUpdate()
 
 		CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
 		pMainFrame->m_wndRibbonBar.GetElementsByID(ID_FORECOLOR, arr);
-		CMFCRibbonColorButton* pForeColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+		CMFCRibbonColorButton* pForeColorButton = (CMFCRibbonColorButton*)arr[0];
 		pForeColorButton->SetColor(RGB(0, 0, 0));
 
 		pMainFrame->m_wndRibbonBar.GetElementsByID(ID_BACKCOLOR, arr);
-		CMFCRibbonColorButton* pBackColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+		CMFCRibbonColorButton* pBackColorButton = (CMFCRibbonColorButton*)arr[0];
 		pBackColorButton->SetColor(RGB(255, 255, 255));
 
 		foreColor = RGB(0, 0, 0);
@@ -843,7 +843,7 @@ void CDrawView::OnButtonResize()
 
 		pDoc->SetModifiedFlag(TRUE);
 		pDoc->UpdateAllViews(NULL, 1, NULL);
-		CMainFrame* pMainFrame = DYNAMIC_DOWNCAST(CMainFrame, AfxGetMainWnd());
+		CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
 		CSize canvasSize = pDoc->GetCanvasSize();
 		pMainFrame->UpdateStatusCanvasSize(canvasSize);
 	}
@@ -857,7 +857,7 @@ void CDrawView::OnButtonPen()
 	//	Get the size selection gallery
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
 	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
-	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
+	CMFCRibbonGallery* pGallery = (CMFCRibbonGallery*)arr[0];
 
 	//	Set icons for pen tool sizes
 	pGallery->SetPalette(IDB_SIZES1234, 104);
@@ -871,7 +871,7 @@ void CDrawView::OnButtonEraser()
 	//	Get the size selection gallery
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
 	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
-	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
+	CMFCRibbonGallery* pGallery = (CMFCRibbonGallery*)arr[0];
 
 	//	Set icons for eraser tool sizes
 	pGallery->SetPalette(IDB_SIZES46810, 104);
@@ -885,7 +885,7 @@ void CDrawView::OnButtonBrush()
 	//	Get the size selection gallery
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
 	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
-	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
+	CMFCRibbonGallery* pGallery = (CMFCRibbonGallery*)arr[0];
 
 	//	Set icons for brush tool sizes
 	pGallery->SetPalette(IDB_SIZES1358, 104);
@@ -906,10 +906,12 @@ void CDrawView::OnButtonColorPicker()
 
 void CDrawView::OnGalleryShapes()
 {
-	// Get the shape selection gallery
+	CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
-	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SHAPES, arr);
-	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
+	
+	// Get the shape selection gallery
+	pMainFrame->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SHAPES, arr);
+	CMFCRibbonGallery* pGallery = (CMFCRibbonGallery*)arr[0];
 	
 	// Get the selected shape
 	selectedShape = pGallery->GetSelectedItem();
@@ -918,9 +920,8 @@ void CDrawView::OnGalleryShapes()
 	activeControlCommandID = ID_GALLERY_SHAPES;
 	
 	//	Get the size selection gallery
-	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> sarr;
-	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, sarr);
-	CMFCRibbonGallery* psGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, sarr[0]);
+	pMainFrame->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
+	CMFCRibbonGallery* psGallery = (CMFCRibbonGallery*)arr[0];
 
 	//	Set icons for shape tool sizes
 	psGallery->SetPalette(IDB_SIZES1358, 104);
@@ -962,7 +963,7 @@ void CDrawView::OnGallerySize()
 {
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
 	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_GALLERY_SIZE, arr);
-	CMFCRibbonGallery* pGallery = DYNAMIC_DOWNCAST(CMFCRibbonGallery, arr[0]);
+	CMFCRibbonGallery* pGallery = (CMFCRibbonGallery*)arr[0];
 
 	sizeIndex = pGallery->GetSelectedItem();
 	currentTool->SetSizeByIndex(sizeIndex);
@@ -972,7 +973,7 @@ void CDrawView::OnForecolor()
 {
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
 	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_FORECOLOR, arr);
-	CMFCRibbonColorButton* pColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+	CMFCRibbonColorButton* pColorButton = (CMFCRibbonColorButton*)arr[0];
 
 	COLORREF selectedColor = pColorButton->GetColor();
 
@@ -989,7 +990,7 @@ void CDrawView::OnBackcolor()
 {
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
 	((CMainFrame*)AfxGetMainWnd())->m_wndRibbonBar.GetElementsByID(ID_BACKCOLOR, arr);
-	CMFCRibbonColorButton* pColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+	CMFCRibbonColorButton* pColorButton = (CMFCRibbonColorButton*)arr[0];
 
 	COLORREF selectedColor = pColorButton->GetColor();
 
@@ -1223,10 +1224,10 @@ void CDrawView::OnPrimaryColorPicked(COLORREF color)
 	foreColor = color;
 
 	// Update the foreground color button in the ribbon bar
-	CMainFrame* pMainFrame = DYNAMIC_DOWNCAST(CMainFrame, AfxGetMainWnd());
+	CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
 	pMainFrame->m_wndRibbonBar.GetElementsByID(ID_FORECOLOR, arr);
-	CMFCRibbonColorButton* pForeColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+	CMFCRibbonColorButton* pForeColorButton = (CMFCRibbonColorButton*)arr[0];
 	pForeColorButton->SetColor(foreColor);
 	pMainFrame->m_wndRibbonBar.ForceRecalcLayout();
 }
@@ -1236,17 +1237,17 @@ void CDrawView::OnSecondaryColorPicked(COLORREF color)
 	backColor = color;
 
 	// Update the background color button in the ribbon bar
-	CMainFrame* pMainFrame = DYNAMIC_DOWNCAST(CMainFrame, AfxGetMainWnd());
+	CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
 	CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> arr;
 	pMainFrame->m_wndRibbonBar.GetElementsByID(ID_BACKCOLOR, arr);
-	CMFCRibbonColorButton* pBackColorButton = DYNAMIC_DOWNCAST(CMFCRibbonColorButton, arr[0]);
+	CMFCRibbonColorButton* pBackColorButton = (CMFCRibbonColorButton*)arr[0];
 	pBackColorButton->SetColor(backColor);
 	pMainFrame->m_wndRibbonBar.ForceRecalcLayout();
 }
 
 void CDrawView::DeselectShapes()
 {
-	CMainFrame* pMainFrame = DYNAMIC_DOWNCAST(CMainFrame, AfxGetMainWnd());
+	CMainFrame* pMainFrame = (CMainFrame*)AfxGetMainWnd();
 	CMFCRibbonBar* rbnBar = &pMainFrame->m_wndRibbonBar;
 	CMFCRibbonGallery* pGalleryShapes = (CMFCRibbonGallery*)rbnBar->FindByID(ID_GALLERY_SHAPES);
 	pGalleryShapes->SelectItem(-1);

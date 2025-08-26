@@ -153,7 +153,7 @@ void CDrawDoc::DeleteContents()
 BOOL CDrawDoc::DoSave(LPCTSTR lpszPathName, BOOL bReplace)
 {
 	CString newName = lpszPathName;
-	CDrawApp* pApp = DYNAMIC_DOWNCAST(CDrawApp, AfxGetApp());
+	CDrawApp* pApp = (CDrawApp*)AfxGetApp();
 
 	// If no path name is provided or we're doing a "Save As" operation
 	if (newName.IsEmpty() || !bReplace)
@@ -257,7 +257,7 @@ BOOL CDrawDoc::OnSaveDocument(LPCTSTR lpszPathName)
 
 void CDrawDoc::OnFileOpen() // ON COMMAND ID_FILE_OPEN
 {
-	CDrawApp* pApp = DYNAMIC_DOWNCAST(CDrawApp, AfxGetApp());
+	CDrawApp* pApp = (CDrawApp*)AfxGetApp();
 
 	CString strFilter =
 		_T("PNG (*.png)|*.png|")
@@ -295,7 +295,7 @@ void CDrawDoc::OnFileOpen() // ON COMMAND ID_FILE_OPEN
 
 BOOL CDrawDoc::OnOpenDocument(LPCTSTR lpszPathName)
 {
-	CDrawApp* pApp = DYNAMIC_DOWNCAST(CDrawApp, AfxGetApp());
+	CDrawApp* pApp = (CDrawApp*)AfxGetApp();
 
 	if (!CDocument::OnOpenDocument(lpszPathName))
 		return FALSE;

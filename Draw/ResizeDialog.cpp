@@ -46,7 +46,7 @@ BOOL ResizeDialog::OnInitDialog()
 
 void ResizeDialog::OnOK()
 {
-	CDrawApp* pApp = DYNAMIC_DOWNCAST(CDrawApp, AfxGetApp());
+	CDrawApp* pApp = (CDrawApp*)AfxGetApp();
 
 	BOOL b;
 	newWidth = GetDlgItemInt(IDC_EDIT_WIDTH, &b, FALSE);
